@@ -117,8 +117,8 @@ Create a high priority issue titled "Fix authentication bug" in the ENG team
 ### Update Project Status (GraphQL)
 ```graphql
 mutation {
-  projectUpdate(id: "<uuid>", input: {
-    statusId: "54294a72-010d-4ae7-9829-bed76232fb66"
+  projectUpdate(id: "<project-uuid>", input: {
+    statusId: "<status-uuid>"  # Get from projectStatuses query
   }) { success }
 }
 ```
