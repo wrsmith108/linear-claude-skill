@@ -199,6 +199,67 @@ If `LINEAR_API_KEY` is not provided to the Claude process, inform the user that 
 
 ## Projects & Initiatives
 
+### MANDATORY: Project Content & Updates
+
+**Every project operation MUST include these steps. Never skip them.**
+
+When **creating** a project:
+1. ✅ Set `content` (full markdown for main panel)
+2. ✅ Set `description` (255 char summary for lists)
+3. ✅ Link to parent initiative
+4. ✅ Add resource links (docs, repos)
+5. ✅ Create initial project update with scope
+
+When **updating** project status:
+1. ✅ Update `statusId` to new status
+2. ✅ Create project update documenting the change
+3. ✅ Include progress metrics (X/Y issues complete)
+
+When **completing** work:
+1. ✅ Update issue statuses to Done
+2. ✅ Update project status to match
+3. ✅ Create final project update with summary
+
+**Example: Mandatory Project Update**
+
+```javascript
+// ALWAYS create an update when project status changes
+node --experimental-fetch -e "
+const PROJECT_ID = '<uuid>';
+
+const update = \`## Status: In Progress 🚀
+
+**Date:** $(date '+%Y-%m-%d')
+
+### Completed
+- ✅ Task 1 done
+- ✅ Task 2 done
+
+### In Progress
+- 🔄 Task 3 in progress
+
+### Up Next
+- 📝 Task 4 pending
+\`;
+
+const mutation = \`mutation {
+  projectUpdateCreate(input: {
+    projectId: \\\"\${PROJECT_ID}\\\",
+    body: \${JSON.stringify(update)},
+    health: onTrack
+  }) { success projectUpdate { url } }
+}\`;
+
+fetch('https://api.linear.app/graphql', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json', 'Authorization': process.env.LINEAR_API_KEY },
+  body: JSON.stringify({ query: mutation })
+}).then(r => r.json()).then(d => console.log('Update created:', d.data?.projectUpdateCreate?.projectUpdate?.url));
+"
+```
+
+---
+
 ### Content vs Description (CRITICAL)
 
 Linear has **two text fields** - using the wrong one causes blank displays:

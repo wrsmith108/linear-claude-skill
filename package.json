@@ -1,6 +1,6 @@
 {
   "name": "claude-plugin-linear",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Claude Code skill for Linear issue, project, and team management with MCP integration",
   "keywords": [
     "claude",
