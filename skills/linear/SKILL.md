@@ -602,7 +602,60 @@ fetch('https://api.linear.app/graphql', {
 
 ---
 
+## Sync Patterns (Bulk Operations)
+
+For bulk synchronization of code changes to Linear, see `sync.md`.
+
+### Quick Sync Commands
+
+```bash
+# Bulk update issues to Done
+npx ts-node scripts/sync.ts --issues SMI-432,SMI-433,SMI-434 --state Done
+
+# Update project status
+npx ts-node scripts/sync.ts --project "Phase 11" --state completed
+
+# Verify sync completed
+npx ts-node scripts/sync.ts --verify SMI-432,SMI-433 --expected-state Done
+```
+
+### Agent-Spawned Sync
+
+Spawn a parallel agent for autonomous sync:
+
+```javascript
+Task({
+  description: "Sync Phase 11 to Linear",
+  prompt: "Update SMI-432,433,434 to Done. Then update project 'Phase 11' to completed.",
+  subagent_type: "general-purpose"
+})
+```
+
+### Hook-Triggered Sync
+
+Auto-suggest sync after code edits. Add to `.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "PostToolUse": [{
+      "matcher": "Write|Edit",
+      "hooks": [{
+        "type": "command",
+        "command": "bash ~/.claude/skills/linear/hooks/post-edit.sh"
+      }]
+    }]
+  }
+}
+```
+
+See `sync.md` for complete patterns including AgentDB integration and swarm coordination.
+
+---
+
 ## Reference
 
 - Linear MCP: https://linear.app/docs/mcp.md
 - GraphQL API: See `api.md`
+- SDK Automation: See `sdk.md`
+- Bulk Sync: See `sync.md`
