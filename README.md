@@ -11,6 +11,7 @@ A comprehensive [Claude Code](https://claude.ai/code) skill for managing Linear 
 - **Project Management** — Content, descriptions, milestones, resource links
 - **Status Management** — Project status UUIDs for workflow automation
 - **MCP Reliability Workarounds** — Fallback patterns for timeout/failure scenarios
+- **Bulk Sync** — Synchronize code changes with Linear via CLI, agents, or hooks
 
 ## Installation
 
@@ -53,9 +54,13 @@ skills/linear/
 ├── SKILL.md          # Main skill instructions
 ├── api.md            # GraphQL API reference
 ├── sdk.md            # SDK automation patterns
-└── scripts/
-    ├── query.ts      # GraphQL query runner
-    └── query.sh      # Shell wrapper
+├── sync.md           # Bulk sync patterns
+├── scripts/
+│   ├── query.ts      # GraphQL query runner
+│   ├── query.sh      # Shell wrapper
+│   └── sync.ts       # Bulk sync CLI tool
+└── hooks/
+    └── post-edit.sh  # Auto-sync hook
 ```
 
 ## Key Patterns
@@ -154,6 +159,53 @@ mutation {
 
 ### Bulk Operations (SDK)
 See `skills/linear/sdk.md` for TypeScript patterns for loops, filtering, and batch updates.
+
+### Bulk Sync (NEW)
+
+Synchronize code changes with Linear issues in bulk:
+
+```bash
+# Update multiple issues to Done
+npx ts-node scripts/sync.ts --issues SMI-432,SMI-433,SMI-434 --state Done
+
+# Update project status after phase completion
+npx ts-node scripts/sync.ts --project "Phase 11" --state completed
+
+# Verify sync completed
+npx ts-node scripts/sync.ts --verify SMI-432,SMI-433 --expected-state Done
+```
+
+#### Agent-Spawned Sync
+
+Spawn a parallel agent for autonomous sync via Task tool:
+
+```javascript
+Task({
+  description: "Sync Phase 11 to Linear",
+  prompt: "Update SMI-432,433,434 to Done. Update project to completed.",
+  subagent_type: "general-purpose"
+})
+```
+
+#### Hook-Triggered Sync
+
+Auto-suggest sync after code edits. Add to `.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "PostToolUse": [{
+      "matcher": "Write|Edit",
+      "hooks": [{
+        "type": "command",
+        "command": "bash ~/.claude/skills/linear/hooks/post-edit.sh"
+      }]
+    }]
+  }
+}
+```
+
+See `skills/linear/sync.md` for complete patterns including AgentDB integration.
 
 ## Contributing
 
