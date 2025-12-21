@@ -1,0 +1,34 @@
+{
+  "name": "claude-plugin-linear",
+  "version": "1.0.0",
+  "description": "Claude Code skill for Linear issue, project, and team management with MCP integration",
+  "keywords": [
+    "claude",
+    "claude-code",
+    "claude-plugin",
+    "linear",
+    "project-management",
+    "issue-tracking",
+    "workflow"
+  ],
+  "author": "wrsmith108",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wrsmith108/linear-claude-skill.git"
+  },
+  "homepage": "https://github.com/wrsmith108/linear-claude-skill#readme",
+  "bugs": {
+    "url": "https://github.com/wrsmith108/linear-claude-skill/issues"
+  },
+  "files": [
+    "skills",
+    "README.md",
+    "LICENSE"
+  ],
+  "claude-plugin": {
+    "name": "Linear",
+    "description": "Manage Linear issues, projects, and teams with MCP tools, SDK automation, and GraphQL API patterns",
+    "skills": ["skills/linear"]
+  }
+}

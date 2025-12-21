@@ -1,6 +1,6 @@
 # Linear Skill for Claude Code
 
-A comprehensive Claude Code skill for managing Linear issues, projects, and teams. Provides patterns for MCP tools, SDK automation, and GraphQL API access.
+A comprehensive [Claude Code](https://claude.ai/code) skill for managing Linear issues, projects, and teams. Provides patterns for MCP tools, SDK automation, and GraphQL API access.
 
 ## Features
 
@@ -14,29 +14,17 @@ A comprehensive Claude Code skill for managing Linear issues, projects, and team
 
 ## Installation
 
-### Quick Install (Recommended)
+### Option A: Claude Plugin (Recommended)
+
+```bash
+claude plugin add github:wrsmith108/linear-claude-skill
+```
+
+### Option B: Manual Installation
 
 ```bash
 # Clone directly to your skills directory
 git clone https://github.com/wrsmith108/linear-claude-skill ~/.claude/skills/linear
-```
-
-### Manual Install
-
-1. Download the skill files
-2. Copy to `~/.claude/skills/linear/`
-3. Restart Claude Code
-
-## Directory Structure
-
-```
-linear/
-├── SKILL.md          # Main skill instructions
-├── api.md            # GraphQL API reference
-├── sdk.md            # SDK automation patterns
-└── scripts/
-    ├── query.ts      # GraphQL query runner
-    └── query.sh      # Shell wrapper
 ```
 
 ## Prerequisites
@@ -58,6 +46,18 @@ linear/
 }
 ```
 
+## Directory Structure
+
+```
+skills/linear/
+├── SKILL.md          # Main skill instructions
+├── api.md            # GraphQL API reference
+├── sdk.md            # SDK automation patterns
+└── scripts/
+    ├── query.ts      # GraphQL query runner
+    └── query.sh      # Shell wrapper
+```
+
 ## Key Patterns
 
 ### Discovery Before Creation (Critical!)
@@ -72,7 +72,7 @@ linear projects list | grep -i "phase\|feature-name"
 linear issues list --filter "title:keyword"
 ```
 
-See `SKILL.md` → "Discovery Before Creation" for the full checklist.
+See `skills/linear/SKILL.md` → "Discovery Before Creation" for the full checklist.
 
 ### MCP Reliability (Critical!)
 
@@ -85,7 +85,7 @@ The Linear MCP server has known reliability issues:
 | Update status | ⚠️ Unreliable | Use GraphQL |
 | Add comment | ❌ Broken | Use GraphQL |
 
-See `SKILL.md` for GraphQL workaround patterns.
+See `skills/linear/SKILL.md` for GraphQL workaround patterns.
 
 ### Content vs Description (Critical!)
 
@@ -153,7 +153,7 @@ mutation {
 ```
 
 ### Bulk Operations (SDK)
-See `sdk.md` for TypeScript patterns for loops, filtering, and batch updates.
+See `skills/linear/sdk.md` for TypeScript patterns for loops, filtering, and batch updates.
 
 ## Contributing
 
