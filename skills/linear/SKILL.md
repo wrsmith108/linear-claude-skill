@@ -227,6 +227,36 @@ LINEAR_API_KEY=lin_api_xxx npx tsx scripts/sync.ts --issues SMI-432 --state Done
 
 When MCP times out or fails, use these direct GraphQL patterns:
 
+#### ⚠️ Shell Script Compatibility
+
+**IMPORTANT**: When writing inline Node.js scripts in bash, avoid JavaScript features that confuse shell parsing:
+
+| Feature | Problem | Solution |
+|---------|---------|----------|
+| Optional chaining `?.` | Shell sees `?` as glob | Use explicit null checks |
+| Nullish coalescing `??` | Double `?` confuses parser | Use ternary `? :` |
+| Heredocs with `${}` | Shell interpolation | Use `<< 'EOF'` (quoted) |
+
+**Anti-Pattern (breaks in bash):**
+```javascript
+// ❌ Optional chaining breaks shell parsing
+const name = project.status?.name;
+```
+
+**Correct Pattern:**
+```javascript
+// ✅ Explicit null check works everywhere
+const name = project.status ? project.status.name : 'No status';
+```
+
+**Heredoc Pattern:**
+```bash
+# ✅ Use quoted EOF to prevent shell interpolation
+node --input-type=module << 'ENDSCRIPT'
+const value = obj.prop ? obj.prop.nested : 'default';
+ENDSCRIPT
+```
+
 #### Search Issues (when MCP times out)
 
 ```javascript
