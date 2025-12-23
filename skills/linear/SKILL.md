@@ -33,6 +33,52 @@ Choose the right tool for the task:
 
 **Pattern**: Use MCP for issue creation, but fall back to direct GraphQL for searches, status updates, and comments.
 
+## Critical Requirements
+
+### ⚠️ MANDATORY: Issues → Projects → Initiatives
+
+**Every issue MUST be attached to a project. Every project MUST be linked to an initiative.**
+
+Orphaned issues and projects are invisible in roadmap views and break tracking.
+
+| Entity | Must Link To | Consequence if Missing |
+|--------|--------------|------------------------|
+| Issue | Project | Not visible in project board |
+| Project | Initiative | Not visible in initiative roadmap |
+
+**Anti-Pattern (NEVER DO):**
+```bash
+# ❌ Creating orphaned issues
+mcp__linear__linear_create_issue with title="My task"
+# Issue exists but is not part of any project!
+```
+
+**Correct Pattern (ALWAYS DO):**
+```bash
+# ✅ Create issue AND add to project in same workflow
+mcp__linear__linear_create_issue with title="My task" ...
+node scripts/linear-helpers.mjs add-issues-to-project <projectId> <issueNumber>
+
+# ✅ Create project AND link to initiative
+linear projects create --name "Phase N: Name"
+node scripts/linear-helpers.mjs link-project <projectId>
+```
+
+### Helper Script: Update Issue Status
+
+Use the helper script for reliable status updates:
+
+```bash
+# Update multiple issues to Done
+node scripts/linear-helpers.mjs update-status Done 550 551 552
+
+# Available states: Backlog, Todo, In Progress, In Review, Done, Canceled
+```
+
+This is more reliable than MCP's `linear_update_issue` which has known issues.
+
+---
+
 ## Conventions
 
 ### Issue Status
