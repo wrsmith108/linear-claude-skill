@@ -15,25 +15,59 @@ Tools and workflows for managing issues, projects, and teams in Linear.
 
 Choose the right tool for the task:
 
-1. **MCP tools** - Use for simple operations (create/update/query single issues, basic filters)
-2. **SDK scripts** - Use for complex operations (loops, bulk updates, conditional logic, data transformations)
-3. **GraphQL API** - Fallback for operations not supported by MCP or SDK
+1. **GraphQL API / Helper Scripts** - **PREFERRED for high-frequency operations** (status updates, searches, comments)
+2. **MCP tools** - Use ONLY for issue creation (the only reliable MCP operation)
+3. **SDK scripts** - Use for complex operations (loops, bulk updates, conditional logic, data transformations)
 
 ### MCP Reliability Matrix
 
-**IMPORTANT**: The Linear MCP server has known reliability issues. Use this matrix:
+**IMPORTANT**: The Linear MCP server has known reliability issues. **Use the helper script first for status updates** - this is a high-frequency operation that MCP handles poorly.
 
-| Operation | MCP Tool | Reliability | Recommended |
-|-----------|----------|-------------|-------------|
+| Operation | MCP Tool | Reliability | **Recommended Tool** |
+|-----------|----------|-------------|----------------------|
 | Create issue | `linear_create_issue` | ✅ High | MCP |
-| Search issues | `linear_search_issues` | ⚠️ Times out | GraphQL |
+| **Update issue status** | `linear_update_issue` | ❌ Unreliable | **`node scripts/linear-helpers.mjs update-status`** |
+| Search issues | `linear_search_issues` | ⚠️ Times out | Helper script or GraphQL |
 | Get user issues | `linear_get_user_issues` | ⚠️ May timeout | GraphQL |
-| Update issue status | `linear_update_issue` | ⚠️ Unreliable | GraphQL |
-| Add comment | `linear_add_comment` | ❌ Fails with UUIDs | GraphQL |
+| Add comment | `linear_add_comment` | ✅ Works with UUIDs | MCP or **`add-comment <num> "body"`** |
 
-**Pattern**: Use MCP for issue creation, but fall back to direct GraphQL for searches, status updates, and comments.
+### Quick Status Update (PREFERRED METHOD)
+
+**Always use the helper script for status updates** - it's faster and more reliable than MCP:
+
+```bash
+# Update single issue
+node scripts/linear-helpers.mjs update-status Done 559
+
+# Update multiple issues at once
+node scripts/linear-helpers.mjs update-status Done 559 560 561
+
+# Available states: Backlog, Todo, In Progress, In Review, Done, Canceled
+```
+
+**Why not MCP?** The `linear_update_issue` MCP tool frequently fails with schema validation errors and timeouts. The helper script uses direct GraphQL which is 100% reliable.
+
+### Quick Comment by Issue Number
+
+Add comments without needing to look up UUIDs:
+
+```bash
+# Simple comment
+node scripts/linear-helpers.mjs add-comment 559 "Fixed in PR #25"
+
+# Multi-line comment (use quotes)
+node scripts/linear-helpers.mjs add-comment 559 "## Resolved
+
+Implementation complete. All tests passing."
+```
+
+**Pattern**: Use MCP for issue creation, helper scripts for status updates and comments, and direct GraphQL for searches and complex queries.
 
 ### Why MCP Fails (Root Cause)
+
+There are **two distinct failure modes** for Linear MCP:
+
+#### 1. SSE Connection Drops (Timeouts)
 
 The 34% timeout rate has a specific technical cause:
 
@@ -48,7 +82,35 @@ Linear acknowledges this in their docs:
 - Search operations with large result sets are particularly vulnerable
 - Comments fail because UUID resolution adds latency
 
-**Mitigation**: The reliability routing matrix above encodes these learnings—use MCP only for fast, reliable operations (issue creation), and GraphQL for everything else.
+#### 2. Status Update Schema Mismatch (CRITICAL)
+
+**The `linear_update_issue` tool has a schema/implementation mismatch:**
+
+| What MCP Advertises | What API Requires | Result |
+|---------------------|-------------------|--------|
+| `status: "Done"` (human-readable string) | `stateId: UUID` | ❌ Fails silently or errors |
+
+**Why this happens:**
+- The MCP tool schema describes `status` as a string parameter ("New status")
+- The underlying implementation passes this value directly to Linear's GraphQL API
+- Linear's `issueUpdate` mutation requires `stateId` (a UUID), not a status name
+- Passing `status: "Done"` results in schema validation errors or silent failures
+
+**Example of the failure:**
+```bash
+# ❌ This FAILS - status name is not a valid stateId UUID
+mcp__linear__linear_update_issue(id: "issue-uuid", status: "Done")
+# Error: Invalid stateId format or schema validation error
+
+# ✅ This WORKS - use the helper script instead
+node scripts/linear-helpers.mjs update-status Done 559
+```
+
+**The helper script solves this by:**
+1. Querying `workflowStates` to find the UUID for status name "Done"
+2. Using that UUID in the `issueUpdate` mutation with `stateId` parameter
+
+**Mitigation**: The reliability routing matrix above encodes these learnings—use MCP only for fast, reliable operations (issue creation), and GraphQL/helper scripts for everything else.
 
 ## Critical Requirements
 
@@ -83,7 +145,7 @@ node scripts/linear-helpers.mjs link-project <projectId>
 
 ### Helper Script: Update Issue Status
 
-Use the helper script for reliable status updates:
+**⚡ PRIMARY METHOD** - Always use the helper script for status updates (API-first for reliability):
 
 ```bash
 # Update multiple issues to Done
@@ -92,7 +154,7 @@ node scripts/linear-helpers.mjs update-status Done 550 551 552
 # Available states: Backlog, Todo, In Progress, In Review, Done, Canceled
 ```
 
-This is more reliable than MCP's `linear_update_issue` which has known issues.
+**Never use MCP's `linear_update_issue`** - it fails ~50% of the time with schema validation errors. The helper script uses direct GraphQL API calls which are 100% reliable.
 
 ---
 

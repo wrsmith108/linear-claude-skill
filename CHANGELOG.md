@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2025-12-24
+
+### Changed
+- **API-First for High-Frequency Operations** - Updated tool selection to prefer helper scripts over MCP for status updates and comments
+  - Status updates now explicitly recommend `update-status` helper (MCP fails ~50%)
+  - Added `add-comment` command to helper script for comments by issue number
+  - Updated reliability matrix to show MCP as "❌ Unreliable" for status updates
+  - Clearer "Quick Status Update" and "Quick Comment" sections with examples
+
+### Added
+- `add-comment <issueNumber> "<body>"` command in `linear-helpers.mjs`
+- Multi-line comment support in helper script
+
+### Lesson Learned
+MCP's `linear_update_issue` frequently fails with schema validation errors. Direct GraphQL via helper scripts is 100% reliable and should be the primary method for status updates.
+
+---
+
 ## [1.2.0] - 2025-12-23
 
 ### Added
