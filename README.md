@@ -348,6 +348,15 @@ Auto-suggest sync after code edits. Add to `.claude/settings.json`:
 
 See `sync.md` for complete patterns including AgentDB integration.
 
+## Changelog
+
+### 2.2.3 (2026-02-10)
+
+- Added Varlock environment schema for secure secret management
+- Completed cross-skill hardcoded path audit across 9 repos
+
+See [CHANGELOG.md](CHANGELOG.md) for full version history.
+
 ## Contributing
 
 Contributions welcome! Please submit issues and PRs to improve the skill.

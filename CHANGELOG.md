@@ -1,3 +1,10 @@
+## [2.2.3] - 2026-02-10
+
+### Changed
+- Added Varlock environment schema for secure secret management
+- Completed cross-skill hardcoded path audit across 9 repos (SMI-2426 through SMI-2435)
+- Updated README with changelog section
+
 ## [2.2.2](https://github.com/wrsmith108/linear-claude-skill/compare/v2.2.1...v2.2.2) (2026-02-10)
 
 
