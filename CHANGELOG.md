@@ -1,3 +1,17 @@
+# [2.5.0](https://github.com/wrsmith108/linear-claude-skill/compare/v2.4.0...v2.5.0) (2026-03-17)
+
+
+### Bug Fixes
+
+* address governance review findings ([ab1882c](https://github.com/wrsmith108/linear-claude-skill/commit/ab1882c16e3a7a89414af197b21c36861dd34123))
+
+
+### Features
+
+* add esbuild pre-compilation for faster CLI startup ([53f3218](https://github.com/wrsmith108/linear-claude-skill/commit/53f3218d2e13a71c576b3a95687974d7d9240e13)), closes [#13](https://github.com/wrsmith108/linear-claude-skill/issues/13)
+* defer API key validation for non-API commands and add build verification ([593c3d8](https://github.com/wrsmith108/linear-claude-skill/commit/593c3d8d0d0e361d5cbea3954e38ff0f44180aa7))
+* esbuild pre-compilation for faster CLI startup ([#15](https://github.com/wrsmith108/linear-claude-skill/issues/15)) ([eb41a36](https://github.com/wrsmith108/linear-claude-skill/commit/eb41a36ed33b1ed5b69b807fa964c9fedecb4b5c))
+
 # [2.4.0](https://github.com/wrsmith108/linear-claude-skill/compare/v2.3.2...v2.4.0) (2026-03-04)
 
 
