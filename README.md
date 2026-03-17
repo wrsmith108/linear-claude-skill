@@ -4,6 +4,7 @@ A comprehensive [Claude Code](https://claude.ai/code) skill for managing Linear 
 
 ## Features
 
+- **esbuild Pre-compilation** — 18x faster CLI startup (~50ms vs ~1s) with transparent tsx fallback
 - **Label Taxonomy System** — Domain-based labels for consistent categorization and agent routing
 - **First-Time Setup Check** — Automatic configuration validation with actionable guidance
 - **High-Level Operations** — Simple commands for initiatives, projects, and status updates
@@ -13,10 +14,9 @@ A comprehensive [Claude Code](https://claude.ai/code) skill for managing Linear 
 - **SDK Automation** — Complex operations with TypeScript scripts
 - **GraphQL API** — Direct API access for advanced queries
 - **Project Management** — Content, descriptions, milestones, resource links
-- **Status Management** — Project status UUIDs for workflow automation
-- **MCP Reliability Workarounds** — Fallback patterns for timeout/failure scenarios
 - **Bulk Sync** — Synchronize code changes with Linear via CLI, agents, or hooks
 - **Image Uploads** — Upload images to Linear's S3 storage and attach to issues
+- **Smoke Tests** — Automated verification of build output and CLI behavior
 
 ## Quick Start (New Users)
 
@@ -30,7 +30,7 @@ cd ~/.claude/skills/linear && npm install
 ### 2. Run Setup Check
 
 ```bash
-npx tsx scripts/setup.ts
+npm run setup
 ```
 
 This checks your configuration and tells you exactly what's missing.
@@ -51,31 +51,39 @@ source ~/.zshrc
 ### 4. Verify It Works
 
 ```bash
-npx tsx scripts/linear-ops.ts whoami
+npm run ops -- whoami
 ```
 
 You should see your name and organization.
 
-### 5. Start Using It
+### 5. Build for Faster Startup (Optional)
+
+```bash
+npm run build
+```
+
+Pre-compiles TypeScript to JavaScript for ~18x faster CLI cold starts. Without building, commands still work via tsx (slower but functional).
+
+### 6. Start Using It
 
 ```bash
 # Create an initiative
-npx tsx scripts/linear-ops.ts create-initiative "My Project"
+npm run ops -- create-initiative "My Project"
 
 # Create a project
-npx tsx scripts/linear-ops.ts create-project "Phase 1" "My Project"
+npm run ops -- create-project "Phase 1" "My Project"
 
 # Create a sub-issue under a parent
-npx tsx scripts/linear-ops.ts create-sub-issue ENG-100 "Add tests" "Unit tests for feature"
+npm run ops -- create-sub-issue ENG-100 "Add tests" "Unit tests for feature"
 
 # Set parent-child relationships for existing issues
-npx tsx scripts/linear-ops.ts set-parent ENG-100 ENG-101 ENG-102
+npm run ops -- set-parent ENG-100 ENG-101 ENG-102
 
 # Update issue status
-node scripts/linear-helpers.mjs update-status Done 123 124
+npm run ops -- status Done ENG-123 ENG-124
 
 # See all commands
-npx tsx scripts/linear-ops.ts help
+npm run ops -- help
 ```
 
 ---
@@ -113,23 +121,26 @@ cd ~/.claude/skills/linear && npm install
 
 ```
 linear-claude-skill/
-├── SKILL.md          # Main skill instructions (Claude Code discovers this)
-├── api.md            # GraphQL API reference
-├── sdk.md            # SDK automation patterns
-├── sync.md           # Bulk sync patterns
+├── SKILL.md              # Main skill instructions (Claude Code discovers this)
+├── api.md                # GraphQL API reference
+├── sdk.md                # SDK automation patterns
+├── sync.md               # Bulk sync patterns
 ├── docs/
-│   └── labels.md     # Label taxonomy documentation
+│   └── labels.md         # Label taxonomy documentation
 ├── scripts/
-│   ├── linear-ops.ts # High-level operations (issues, projects, labels)
-│   ├── query.ts      # GraphQL query runner
-│   ├── setup.ts      # Configuration checker
-│   ├── sync.ts       # Bulk sync CLI tool
-│   ├── upload-image.ts  # Upload images to Linear S3
-│   ├── extract-image.ts # Extract images from session JSONL
-│   ├── linear-api.mjs # Direct API wrapper
-│   └── lib/          # Shared utilities (taxonomy, labels, verification)
+│   ├── build.mjs         # esbuild pre-compilation script
+│   ├── linear-ops.ts     # High-level operations (issues, projects, labels)
+│   ├── query.ts          # GraphQL query runner
+│   ├── setup.ts          # Configuration checker
+│   ├── sync.ts           # Bulk sync CLI tool
+│   ├── upload-image.ts   # Upload images to Linear S3
+│   ├── extract-image.ts  # Extract images from session JSONL
+│   ├── linear-api.mjs    # Direct API wrapper
+│   ├── __tests__/        # Smoke tests (Node built-in test runner)
+│   └── lib/              # Shared utilities (taxonomy, labels, verification)
+├── dist/                 # Pre-compiled JS output (gitignored, in npm package)
 └── hooks/
-    └── post-edit.sh  # Auto-sync hook
+    └── post-edit.sh      # Auto-sync hook
 ```
 
 ## Key Patterns
@@ -164,19 +175,6 @@ grep -r "test.skip" tests/          # Check if tests are just skipped
 
 See `SKILL.md` → "Codebase Verification Before Work" for the full checklist.
 
-### MCP Reliability (Critical!)
-
-The Linear MCP server has known reliability issues (34% timeout rate due to SSE idle timeouts):
-
-| Operation | MCP Reliability | Recommendation |
-|-----------|----------------|----------------|
-| Create issue | ✅ Reliable | Use MCP |
-| Search issues | ⚠️ Times out | Use GraphQL |
-| Update status | ⚠️ Unreliable | Use GraphQL |
-| Add comment | ❌ Broken | Use GraphQL |
-
-See `SKILL.md` for GraphQL workaround patterns and root cause explanation.
-
 ### Content vs Description (Critical!)
 
 Linear has TWO text fields — using the wrong one causes blank displays:
@@ -205,13 +203,13 @@ Organize issues into parent-child hierarchies for better tracking:
 ```bash
 # Create a sub-issue under a parent issue
 # Inherits team and project from parent automatically
-npx tsx scripts/linear-ops.ts create-sub-issue <parent> <title> [description] [--priority 1-4] [--labels label1,label2]
+npm run ops -- create-sub-issue <parent> <title> [description] [--priority 1-4] [--labels label1,label2]
 
 # Set existing issues as children of a parent
-npx tsx scripts/linear-ops.ts set-parent <parent> <child1> <child2> ...
+npm run ops -- set-parent <parent> <child1> <child2> ...
 
 # List all sub-issues of a parent
-npx tsx scripts/linear-ops.ts list-sub-issues <parent>
+npm run ops -- list-sub-issues <parent>
 ```
 
 **When to use sub-issues:**
@@ -225,16 +223,16 @@ A standardized label system for consistent issue categorization across projects:
 
 ```bash
 # Show full taxonomy (25 labels across 3 categories)
-npx tsx scripts/linear-ops.ts labels taxonomy
+npm run ops -- labels taxonomy
 
 # Validate label combinations
-npx tsx scripts/linear-ops.ts labels validate "feature,security,breaking-change"
+npm run ops -- labels validate "feature,security,breaking-change"
 
 # Suggest labels based on issue title
-npx tsx scripts/linear-ops.ts labels suggest "Fix XSS vulnerability in login form"
+npm run ops -- labels suggest "Fix XSS vulnerability in login form"
 
 # Show agent recommendations for labels
-npx tsx scripts/linear-ops.ts labels agents "security,performance"
+npm run ops -- labels agents "security,performance"
 ```
 
 **Label Categories:**
@@ -277,8 +275,7 @@ mutation {
 Post status updates to a project's Updates tab:
 
 ```bash
-# Using SDK script (recommended)
-LINEAR_API_KEY=lin_api_xxx npx tsx scripts/create-project-update.ts "Project Name" "## Update\n\nBody" onTrack
+npm run ops -- create-project-update "Project Name" "## Update\n\nBody" --health onTrack
 ```
 
 Health options: `onTrack`, `atRisk`, `offTrack`
@@ -310,13 +307,13 @@ Synchronize code changes with Linear issues in bulk:
 
 ```bash
 # Update multiple issues to Done
-npx ts-node scripts/sync.ts --issues ENG-432,ENG-433,ENG-434 --state Done
+npx tsx scripts/sync.ts --issues ENG-432,ENG-433,ENG-434 --state Done
 
 # Update project status after phase completion
-npx ts-node scripts/sync.ts --project "Phase 11" --state completed
+npx tsx scripts/sync.ts --project "Phase 11" --state completed
 
 # Verify sync completed
-npx ts-node scripts/sync.ts --verify ENG-432,ENG-433 --expected-state Done
+npx tsx scripts/sync.ts --verify ENG-432,ENG-433 --expected-state Done
 ```
 
 #### Agent-Spawned Sync
@@ -353,16 +350,26 @@ See `sync.md` for complete patterns including AgentDB integration.
 
 ## Changelog
 
+### 2.5.0 (2026-03-17)
+
+- Consolidated `requireClient()` to delegate to `getLinearClient()` — single client singleton
+- Added smoke tests for build output, CLI behavior, and lazy client initialization
+- Documented `__BUNDLED__` build-time define pattern
+- Extended esbuild fallback pattern to `upload-image` and `extract-image` scripts
+- Bumped SKILL.md version to match package.json
+
+### 2.4.0 (2026-03-04)
+
+- Added esbuild pre-compilation for **18x faster CLI startup** (~50ms vs ~1s)
+- Lazy `getLinearClient()` — SDK initialization deferred to first API call
+- Transparent fallback: `node dist/X.js || npx tsx scripts/X.ts`
+- Removed `import.meta.url` CLI guards from lib files
+- `npm run` as canonical invocation form in all documentation
+- CI workflow with build verification and smoke tests
+
 ### 2.3.0 (2026-02-27)
 
-- Added `scripts/upload-image.ts` — upload images to Linear's S3 storage and attach as comments
-- Added `scripts/extract-image.ts` — extract inline base64 images from Claude Code session JSONL files
-- Added image upload workflow documentation in SKILL.md
-
-### 2.2.3 (2026-02-10)
-
-- Added Varlock environment schema for secure secret management
-- Completed cross-skill hardcoded path audit across 9 repos
+- Added `scripts/upload-image.ts` and `scripts/extract-image.ts` for image management
 
 See [CHANGELOG.md](CHANGELOG.md) for full version history.
 
