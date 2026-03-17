@@ -89,6 +89,20 @@ export {
   type ProjectVerification
 } from './verify'
 
+// Client utilities
+export {
+  getLinearClient,
+  createLinearClient,
+  findProjectByName,
+  findInitiativeByName,
+  findTeamByKey,
+  findTeamByName,
+  type HealthStatus,
+  type ProjectInfo,
+  type InitiativeInfo,
+  type TeamInfo
+} from './linear-utils'
+
 // Project template
 export {
   createProject,

@@ -7,12 +7,10 @@
  * - All expected issues created
  * - All labels applied
  */
-import { LinearClient } from '@linear/sdk'
 import { fileURLToPath } from 'url'
+import { getLinearClient } from './linear-utils'
 import { isProjectLinkedToInitiative, DEFAULT_INITIATIVE_ID } from './initiative'
 import { verifyLabelsApplied } from './labels'
-
-const client = new LinearClient({ apiKey: process.env.LINEAR_API_KEY })
 
 export interface ProjectVerification {
   project: {
@@ -70,7 +68,7 @@ export async function verifyProjectCreation(
   }
 
   // Find project
-  const projects = await client.projects({
+  const projects = await getLinearClient().projects({
     filter: { name: { contains: projectName } }
   })
 
@@ -108,7 +106,7 @@ export async function verifyProjectCreation(
   }
 
   // Get project issues
-  const issues = await client.issues({
+  const issues = await getLinearClient().issues({
     filter: { project: { id: { eq: project.id } } },
     first: 100
   })
@@ -171,7 +169,7 @@ export async function verifyProjectsForInitiative(
     throw new Error('initiativeId is required. Set LINEAR_DEFAULT_INITIATIVE_ID or pass explicitly.')
   }
 
-  const projects = await client.projects(projectFilter ? { filter: projectFilter } : undefined)
+  const projects = await getLinearClient().projects(projectFilter ? { filter: projectFilter } : undefined)
 
   const verifications: ProjectVerification[] = []
   const summary = {
@@ -183,7 +181,7 @@ export async function verifyProjectsForInitiative(
 
   for (const proj of projects.nodes) {
     // Get issue count for project
-    const issues = await client.issues({
+    const issues = await getLinearClient().issues({
       filter: { project: { id: { eq: proj.id } } }
     })
 

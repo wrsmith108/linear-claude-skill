@@ -73,22 +73,28 @@ export function createLinearClient(apiKey: string): LinearClient {
   return new LinearClient({ apiKey });
 }
 
+let _cachedClient: LinearClient | null = null;
+
 /**
  * Get a LinearClient instance with API key validation
  *
  * Reads the API key from LINEAR_API_KEY environment variable.
+ * Returns a cached instance on subsequent calls.
  *
  * @throws Error if LINEAR_API_KEY environment variable is not set
  * @returns LinearClient instance
  */
 export function getLinearClient(): LinearClient {
+  if (_cachedClient) return _cachedClient;
+
   const apiKey = process.env.LINEAR_API_KEY;
 
   if (!apiKey) {
     throw new Error('LINEAR_API_KEY environment variable is required');
   }
 
-  return createLinearClient(apiKey);
+  _cachedClient = createLinearClient(apiKey);
+  return _cachedClient;
 }
 
 // ============================================================================

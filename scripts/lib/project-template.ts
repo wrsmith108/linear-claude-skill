@@ -9,13 +9,11 @@
  * 5. Issues created with labels
  * 6. Post-execution verification
  */
-import { LinearClient } from '@linear/sdk'
 import { fileURLToPath } from 'url'
+import { getLinearClient } from './linear-utils'
 import { linkProjectToInitiative, DEFAULT_INITIATIVE_ID } from './initiative'
 import { ensureLabelsExist, extractUniqueLabels } from './labels'
 import { verifyProjectCreation } from './verify'
-
-const client = new LinearClient({ apiKey: process.env.LINEAR_API_KEY })
 
 export interface IssueConfig {
   title: string
@@ -101,7 +99,7 @@ export async function createProject(
   console.log('Step 1: Creating project...')
   let projectId: string
 
-  const existingProjects = await client.projects({
+  const existingProjects = await getLinearClient().projects({
     filter: { name: { eq: config.name } }
   })
 
@@ -109,7 +107,7 @@ export async function createProject(
     projectId = existingProjects.nodes[0].id
     console.log(`  Found existing project: ${projectId}`)
   } else {
-    const createResult = await client.createProject({
+    const createResult = await getLinearClient().createProject({
       teamIds: [teamId],
       name: config.name,
       description: config.shortDescription.substring(0, 255)
@@ -202,7 +200,7 @@ export async function createProject(
         .map(name => labelMap.get(name.toLowerCase()))
         .filter((id): id is string => id !== undefined)
 
-      const issueResult = await client.createIssue({
+      const issueResult = await getLinearClient().createIssue({
         teamId,
         projectId,
         title: issueConfig.title,
@@ -268,7 +266,7 @@ export async function createProjectWithDefaults(
   }
 
   // Get team
-  const teams = await client.teams()
+  const teams = await getLinearClient().teams()
   const team = teams.nodes[0]
 
   return createProject(team.id, {
