@@ -1,3 +1,11 @@
+## [2.5.1](https://github.com/wrsmith108/linear-claude-skill/compare/v2.5.0...v2.5.1) (2026-03-17)
+
+
+### Bug Fixes
+
+* governance retro recommendations ([#16](https://github.com/wrsmith108/linear-claude-skill/issues/16)) ([6375b47](https://github.com/wrsmith108/linear-claude-skill/commit/6375b47e86dd951b98972f74b5e0f6d6da8d2b89))
+* governance retro recommendations (SMI-3374..3378) ([e553a1e](https://github.com/wrsmith108/linear-claude-skill/commit/e553a1e022df8731574d4d9bad704d533030bc79))
+
 # [2.5.0](https://github.com/wrsmith108/linear-claude-skill/compare/v2.4.0...v2.5.0) (2026-03-17)
 
 
