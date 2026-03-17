@@ -23,3 +23,6 @@ dist/
 
 # Claude Code configuration (user-specific)
 CLAUDE.md
+
+# Claude Flow runtime state
+.claude-flow/
