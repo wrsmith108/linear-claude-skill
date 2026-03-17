@@ -5,12 +5,10 @@
  * Handles case-sensitivity issues and provides verification.
  * Integrates with the domain-based label taxonomy.
  */
-import { LinearClient } from '@linear/sdk'
 import { fileURLToPath } from 'url'
+import { getLinearClient } from './linear-utils'
 import { buildColorMap } from './taxonomy-data'
 import { validateLabels, type ValidationResult } from './taxonomy-validation'
-
-const client = new LinearClient({ apiKey: process.env.LINEAR_API_KEY })
 
 // Use taxonomy colors as primary source, with fallbacks for legacy labels
 const TAXONOMY_COLORS = buildColorMap()
@@ -42,7 +40,7 @@ const LABEL_COLORS: Record<string, string> = {
  * Get all existing labels for a team (case-insensitive map)
  */
 export async function getLabelMap(teamId?: string): Promise<Map<string, string>> {
-  const labelsResult = await client.issueLabels(
+  const labelsResult = await getLinearClient().issueLabels(
     teamId ? { filter: { team: { id: { eq: teamId } } } } : undefined
   )
 
@@ -125,7 +123,7 @@ export async function ensureLabelsExist(
     }
 
     try {
-      const result = await client.createIssueLabel({
+      const result = await getLinearClient().createIssueLabel({
         teamId,
         name,
         color: LABEL_COLORS[key] || '#6B7280'
@@ -167,7 +165,7 @@ export async function applyLabelsToIssue(
 
   try {
     // Get existing labels
-    const issue = await client.issue(issueId)
+    const issue = await getLinearClient().issue(issueId)
     const existingLabels = await issue.labels()
     const existingIds = new Set(existingLabels.nodes.map(l => l.id))
 
@@ -193,7 +191,7 @@ export async function applyLabelsToIssue(
 
     // Merge and update
     const allLabelIds = [...existingIds, ...newLabelIds]
-    await client.updateIssue(issueId, { labelIds: allLabelIds })
+    await getLinearClient().updateIssue(issueId, { labelIds: allLabelIds })
 
     return { applied, skipped }
   } catch (error) {
@@ -209,7 +207,7 @@ export async function verifyLabelsApplied(
   expectedLabels: string[]
 ): Promise<{ applied: string[]; missing: string[] }> {
   try {
-    const issue = await client.issue(issueId)
+    const issue = await getLinearClient().issue(issueId)
     const labels = await issue.labels()
     const appliedLower = new Set(labels.nodes.map(l => l.name.toLowerCase()))
 
