@@ -37,7 +37,8 @@ import {
   formatValidationResult,
   formatSuggestions,
   formatAgentSelection,
-  formatAgentMatrix
+  formatAgentMatrix,
+  getLinearClient
 } from './lib';
 
 // Lazy API key validation and client creation
@@ -58,12 +59,20 @@ function requireApiKey(): string {
   return key;
 }
 
-let _cachedClient: LinearClient | null = null;
 function requireClient(): LinearClient {
-  if (!_cachedClient) {
-    _cachedClient = new LinearClient({ apiKey: requireApiKey() });
+  try {
+    return getLinearClient();
+  } catch {
+    // Provide the friendly error message with setup instructions
+    console.error('\n[ERROR] LINEAR_API_KEY environment variable is required\n');
+    console.error('To fix this:');
+    console.error('  1. Go to Linear -> Settings -> Security & access -> Personal API keys');
+    console.error('  2. Create a new API key');
+    console.error('  3. Run: export LINEAR_API_KEY="lin_api_..."');
+    console.error('\nOr run setup to check all requirements:');
+    console.error('  npx tsx setup.ts\n');
+    process.exit(1);
   }
-  return _cachedClient;
 }
 
 // Command implementations
