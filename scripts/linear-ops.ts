@@ -40,20 +40,31 @@ import {
   formatAgentMatrix
 } from './lib';
 
-// Validate API key early
-const API_KEY = process.env.LINEAR_API_KEY;
-if (!API_KEY) {
-  console.error('\n[ERROR] LINEAR_API_KEY environment variable is required\n');
-  console.error('To fix this:');
-  console.error('  1. Go to Linear -> Settings -> Security & access -> Personal API keys');
-  console.error('  2. Create a new API key');
-  console.error('  3. Run: export LINEAR_API_KEY="lin_api_..."');
-  console.error('\nOr run setup to check all requirements:');
-  console.error('  npx tsx setup.ts\n');
-  process.exit(1);
+// Lazy API key validation and client creation
+// Commands that don't need the API (help, labels taxonomy/validate/suggest/agents/matrix)
+// can run without LINEAR_API_KEY being set.
+function requireApiKey(): string {
+  const key = process.env.LINEAR_API_KEY;
+  if (!key) {
+    console.error('\n[ERROR] LINEAR_API_KEY environment variable is required\n');
+    console.error('To fix this:');
+    console.error('  1. Go to Linear -> Settings -> Security & access -> Personal API keys');
+    console.error('  2. Create a new API key');
+    console.error('  3. Run: export LINEAR_API_KEY="lin_api_..."');
+    console.error('\nOr run setup to check all requirements:');
+    console.error('  npx tsx setup.ts\n');
+    process.exit(1);
+  }
+  return key;
 }
 
-const client = new LinearClient({ apiKey: API_KEY });
+let _cachedClient: LinearClient | null = null;
+function requireClient(): LinearClient {
+  if (!_cachedClient) {
+    _cachedClient = new LinearClient({ apiKey: requireApiKey() });
+  }
+  return _cachedClient;
+}
 
 // Command implementations
 const commands: Record<string, (...args: string[]) => Promise<void>> = {
@@ -83,7 +94,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
     console.log(`Creating issue in project: ${projectName}...`);
 
     // Find project by name
-    const projects = await client.projects({
+    const projects = await requireClient().projects({
       filter: { name: { containsIgnoreCase: projectName } }
     });
 
@@ -96,7 +107,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
     console.log(`  Found project: ${project.name}`);
 
     // Get team from project
-    const teams = await client.teams();
+    const teams = await requireClient().teams();
     if (teams.nodes.length === 0) {
       console.error('[ERROR] No teams found in your workspace');
       process.exit(1);
@@ -121,7 +132,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
       }
     }
 
-    const result = await client.createIssue({
+    const result = await requireClient().createIssue({
       teamId: team.id,
       projectId: project.id,
       title,
@@ -153,8 +164,8 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
 
     console.log(`Creating initiative: ${name}...`);
 
-    const me = await client.viewer;
-    const result = await client.createInitiative({
+    const me = await requireClient().viewer;
+    const result = await requireClient().createInitiative({
       name,
       description: description || `Initiative: ${name}`,
       ownerId: me.id
@@ -163,7 +174,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
     const initiative = await result.initiative;
     if (initiative) {
       // Get the URL by querying the initiative
-      const initiatives = await client.initiatives({ filter: { id: { eq: initiative.id } } });
+      const initiatives = await requireClient().initiatives({ filter: { id: { eq: initiative.id } } });
       const url = initiatives.nodes[0]?.url || `https://linear.app/initiative/${initiative.id}`;
 
       console.log('\n[SUCCESS] Initiative created!');
@@ -186,7 +197,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
     console.log(`Creating project: ${name}...`);
 
     // Get first team (required for project)
-    const teams = await client.teams();
+    const teams = await requireClient().teams();
     if (teams.nodes.length === 0) {
       console.error('[ERROR] No teams found in your workspace');
       process.exit(1);
@@ -197,7 +208,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
     // Find initiative if specified
     let initiativeId: string | undefined;
     if (initiativeName) {
-      const initiatives = await client.initiatives({
+      const initiatives = await requireClient().initiatives({
         filter: { name: { containsIgnoreCase: initiativeName } }
       });
 
@@ -209,7 +220,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
       }
     }
 
-    const result = await client.createProject({
+    const result = await requireClient().createProject({
       name,
       teamIds: [team.id],
       ...(initiativeId && { initiativeIds: [initiativeId] })
@@ -260,7 +271,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
     console.log(`Updating project status: ${projectName} -> ${displayState}...`);
 
     // Find project by name
-    const projects = await client.projects({
+    const projects = await requireClient().projects({
       filter: { name: { containsIgnoreCase: projectName } }
     });
 
@@ -274,8 +285,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
     console.log(`  Current state: ${project.state}`);
 
     // Update project state using the SDK's updateProject method
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (client as any).updateProject(project.id, {
+    await (requireClient() as any).updateProject(project.id, {
       state: apiState
     });
 
@@ -293,7 +303,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
     console.log(`Linking project to initiative...`);
 
     // Find project by name
-    const projects = await client.projects({
+    const projects = await requireClient().projects({
       filter: { name: { containsIgnoreCase: projectName } }
     });
 
@@ -306,7 +316,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
     console.log(`  Found project: ${project.name}`);
 
     // Find initiative by name
-    const initiatives = await client.initiatives({
+    const initiatives = await requireClient().initiatives({
       filter: { name: { containsIgnoreCase: initiativeName } }
     });
 
@@ -319,8 +329,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
     console.log(`  Found initiative: ${initiative.name}`);
 
     // Link project to initiative using createInitiativeToProject
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (client as any).createInitiativeToProject({
+    await (requireClient() as any).createInitiativeToProject({
       projectId: project.id,
       initiativeId: initiative.id
     });
@@ -340,7 +349,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
     console.log(`Unlinking project from initiative...`);
 
     // Find project by name
-    const projects = await client.projects({
+    const projects = await requireClient().projects({
       filter: { name: { containsIgnoreCase: projectName } }
     });
 
@@ -353,7 +362,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
     console.log(`  Found project: ${project.name}`);
 
     // Find initiative by name
-    const initiatives = await client.initiatives({
+    const initiatives = await requireClient().initiatives({
       filter: { name: { containsIgnoreCase: initiativeName } }
     });
 
@@ -368,8 +377,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
     // Find the initiative-to-project link by querying initiativeToProjects
     // Note: Linear SDK filter doesn't support nested entity filters well,
     // so we fetch all links for the initiative and filter client-side
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const allLinks = await (client as any).initiativeToProjects({
+    const allLinks = await (requireClient() as any).initiativeToProjects({
       filter: {
         initiativeId: { eq: initiative.id }
       }
@@ -377,7 +385,6 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
 
     // Find the specific link for our project
     const matchingLinks = (allLinks.nodes || []).filter(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (l: any) => l.projectId === project.id
     );
 
@@ -389,8 +396,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
     const link = matchingLinks[0];
 
     // Delete the initiative-to-project link
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (client as any).deleteInitiativeToProject(link.id);
+    await (requireClient() as any).deleteInitiativeToProject(link.id);
 
     console.log(`\n[SUCCESS] Project unlinked from initiative!`);
     console.log(`  Project: ${project.name}`);
@@ -415,7 +421,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
     console.log(`Creating project update for: ${projectName}...`);
 
     // Find project by name
-    const projects = await client.projects({
+    const projects = await requireClient().projects({
       filter: { name: { containsIgnoreCase: projectName } }
     });
 
@@ -427,7 +433,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
     const project = projects.nodes[0];
     console.log(`  Found project: ${project.name}`);
 
-    const result = await client.createProjectUpdate({
+    const result = await requireClient().createProjectUpdate({
       projectId: project.id,
       body,
       health
@@ -462,7 +468,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
     console.log(`Creating initiative update for: ${initiativeName}...`);
 
     // Find initiative by name
-    const initiatives = await client.initiatives({
+    const initiatives = await requireClient().initiatives({
       filter: { name: { containsIgnoreCase: initiativeName } }
     });
 
@@ -474,7 +480,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
     const initiative = initiatives.nodes[0];
     console.log(`  Found initiative: ${initiative.name}`);
 
-    const result = await client.createInitiativeUpdate({
+    const result = await requireClient().createInitiativeUpdate({
       initiativeId: initiative.id,
       body,
       health
@@ -502,7 +508,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
     console.log(`Adding link to: ${targetName}...`);
 
     // Try to find as project first
-    const projects = await client.projects({
+    const projects = await requireClient().projects({
       filter: { name: { containsIgnoreCase: targetName } }
     });
 
@@ -516,7 +522,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
       console.log(`  Found project: ${entityName}`);
     } else {
       // Try to find as initiative
-      const initiatives = await client.initiatives({
+      const initiatives = await requireClient().initiatives({
         filter: { name: { containsIgnoreCase: targetName } }
       });
 
@@ -557,7 +563,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': API_KEY!
+        'Authorization': requireApiKey()
       },
       body: JSON.stringify({
         query: mutation,
@@ -612,7 +618,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
     console.log(`Updating ${issueNumbers.length} issue(s) to "${normalizedState}"...\n`);
 
     // Get workflow states to find the state ID
-    const states = await client.workflowStates({
+    const states = await requireClient().workflowStates({
       filter: { name: { eq: normalizedState } }
     });
 
@@ -640,7 +646,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
 
       try {
         // Find issue by number
-        const issues = await client.issues({
+        const issues = await requireClient().issues({
           filter: { number: { eq: issueNum } }
         });
 
@@ -668,7 +674,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
   async 'list-initiatives'() {
     console.log('Fetching initiatives...\n');
 
-    const initiatives = await client.initiatives({ first: 50 });
+    const initiatives = await requireClient().initiatives({ first: 50 });
 
     if (initiatives.nodes.length === 0) {
       console.log('No initiatives found.');
@@ -692,7 +698,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
     let filter = {};
     if (initiativeName) {
       // Find initiative first
-      const initiatives = await client.initiatives({
+      const initiatives = await requireClient().initiatives({
         filter: { name: { containsIgnoreCase: initiativeName } }
       });
 
@@ -705,7 +711,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
       filter = { initiatives: { id: { eq: initiatives.nodes[0].id } } };
     }
 
-    const projects = await client.projects({ first: 50, filter });
+    const projects = await requireClient().projects({ first: 50, filter });
 
     if (projects.nodes.length === 0) {
       console.log('No projects found.');
@@ -739,7 +745,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
   async 'whoami'() {
     console.log('Fetching user info...\n');
 
-    const me = await client.viewer;
+    const me = await requireClient().viewer;
     const org = await me.organization;
     const teams = await me.teams();
 
@@ -802,7 +808,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
     console.log(`Setting parent-child relationships...`);
 
     // Find parent issue
-    const parentIssues = await client.issues({
+    const parentIssues = await requireClient().issues({
       filter: { number: { eq: parentNum } }
     });
 
@@ -827,7 +833,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
       }
 
       try {
-        const childIssues = await client.issues({
+        const childIssues = await requireClient().issues({
           filter: { number: { eq: childNum } }
         });
 
@@ -886,7 +892,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
     console.log(`Creating sub-issue for parent #${parentNum}...`);
 
     // Find parent issue
-    const parentIssues = await client.issues({
+    const parentIssues = await requireClient().issues({
       filter: { number: { eq: parentNum } }
     });
 
@@ -928,7 +934,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
     }
 
     // Create issue with parent
-    const result = await client.createIssue({
+    const result = await requireClient().createIssue({
       teamId: parentTeam.id,
       parentId: parent.id,
       title,
@@ -972,7 +978,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
     console.log(`Fetching sub-issues for #${parentNum}...\n`);
 
     // Find parent issue
-    const parentIssues = await client.issues({
+    const parentIssues = await requireClient().issues({
       filter: { number: { eq: parentNum } }
     });
 
@@ -1168,7 +1174,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
     }
 
     // Find issue by number
-    const issues = await client.issues({
+    const issues = await requireClient().issues({
       filter: { number: { eq: issueNum } }
     });
 
@@ -1189,7 +1195,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
 
     // Build label map from workspace labels (case-insensitive lookup)
     // Fetch with higher limit to ensure we get all labels
-    const workspaceLabels = await client.issueLabels({ first: 250 });
+    const workspaceLabels = await requireClient().issueLabels({ first: 250 });
     const labelMap = new Map<string, { id: string; name: string }>();
     for (const label of workspaceLabels.nodes) {
       labelMap.set(label.name.toLowerCase(), { id: label.id, name: label.name });
@@ -1238,7 +1244,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
     await issue.update({ labelIds: finalLabelIds });
 
     // Verify the update
-    const updatedIssue = await client.issue(issue.id);
+    const updatedIssue = await requireClient().issue(issue.id);
     const updatedLabels = await updatedIssue.labels();
     const updatedNames = updatedLabels.nodes.map(l => l.name);
 
