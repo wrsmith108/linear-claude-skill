@@ -9,13 +9,10 @@
  * 5. Issues created with labels
  * 6. Post-execution verification
  */
-import { LinearClient } from '@linear/sdk'
-import { fileURLToPath } from 'url'
+import { getLinearClient } from './linear-utils'
 import { linkProjectToInitiative, DEFAULT_INITIATIVE_ID } from './initiative'
 import { ensureLabelsExist, extractUniqueLabels } from './labels'
 import { verifyProjectCreation } from './verify'
-
-const client = new LinearClient({ apiKey: process.env.LINEAR_API_KEY })
 
 export interface IssueConfig {
   title: string
@@ -101,7 +98,7 @@ export async function createProject(
   console.log('Step 1: Creating project...')
   let projectId: string
 
-  const existingProjects = await client.projects({
+  const existingProjects = await getLinearClient().projects({
     filter: { name: { eq: config.name } }
   })
 
@@ -109,7 +106,7 @@ export async function createProject(
     projectId = existingProjects.nodes[0].id
     console.log(`  Found existing project: ${projectId}`)
   } else {
-    const createResult = await client.createProject({
+    const createResult = await getLinearClient().createProject({
       teamIds: [teamId],
       name: config.name,
       description: config.shortDescription.substring(0, 255)
@@ -202,7 +199,7 @@ export async function createProject(
         .map(name => labelMap.get(name.toLowerCase()))
         .filter((id): id is string => id !== undefined)
 
-      const issueResult = await client.createIssue({
+      const issueResult = await getLinearClient().createIssue({
         teamId,
         projectId,
         title: issueConfig.title,
@@ -268,7 +265,7 @@ export async function createProjectWithDefaults(
   }
 
   // Get team
-  const teams = await client.teams()
+  const teams = await getLinearClient().teams()
   const team = teams.nodes[0]
 
   return createProject(team.id, {
@@ -277,58 +274,3 @@ export async function createProjectWithDefaults(
   })
 }
 
-// CLI entry point with example
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  async function main() {
-    const command = process.argv[2]
-
-    if (command === 'example') {
-      console.log('Example ProjectConfig:')
-      console.log(`
-const config: ProjectConfig = {
-  name: 'My Project Phase X: Feature Name',
-  shortDescription: 'Short description under 255 chars for sidebar display.',
-  content: \`# Phase X: Feature Name
-
-## Overview
-Full markdown content with unlimited length.
-
-## Epics
-### Epic 1: Name
-Description of epic.
-
-## Resources
-- [Link 1](url)
-- [Link 2](url)
-
-## Definition of Done
-- [ ] Criterion 1
-- [ ] Criterion 2
-\`,
-  state: 'planned',
-  initiative: '<your-initiative-uuid>',  // Or use DEFAULT_INITIATIVE_ID
-  issues: [
-    {
-      title: 'Issue title',
-      description: 'Issue description',
-      labels: ['label1', 'label2'],
-      priority: 2,
-      estimate: 3
-    }
-  ]
-}
-      `)
-    } else {
-      console.log('Usage:')
-      console.log('  project-template.ts example  - Show example config')
-      console.log('')
-      console.log('Import and use in scripts:')
-      console.log('  import { createProject, createProjectWithDefaults } from "./lib/project-template"')
-      console.log('')
-      console.log('Environment:')
-      console.log('  LINEAR_DEFAULT_INITIATIVE_ID - Default initiative ID for createProjectWithDefaults()')
-    }
-  }
-
-  main().catch(console.error)
-}

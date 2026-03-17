@@ -24,3 +24,13 @@ jobs:
 
       - name: Lint
         run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      - name: Verify dist output
+        run: |
+          test -f dist/linear-ops.js || { echo "Missing dist/linear-ops.js"; exit 1; }
+          test -f dist/query.js || { echo "Missing dist/query.js"; exit 1; }
+          test -f dist/setup.js || { echo "Missing dist/setup.js"; exit 1; }
+          node dist/linear-ops.js help > /dev/null
