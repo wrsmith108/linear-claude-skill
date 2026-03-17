@@ -4,7 +4,6 @@
  * MANDATORY: Every project MUST be linked to an initiative.
  * This module ensures projects are properly connected.
  */
-import { fileURLToPath } from 'url'
 import { getLinearClient } from './linear-utils'
 
 // Default initiative ID - set via environment or override in function calls
@@ -184,61 +183,3 @@ export async function linkProjectsToInitiative(
   return { linked, failed, alreadyLinked }
 }
 
-// CLI entry point
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  async function main() {
-    const command = process.argv[2]
-    const initiativeId = process.argv[3] || DEFAULT_INITIATIVE_ID
-    const projectFilter = process.argv[4]
-
-    if (command === 'link') {
-      if (!initiativeId) {
-        console.log('Usage: initiative.ts link <initiativeId> [projectNameFilter]')
-        console.log('Or set LINEAR_DEFAULT_INITIATIVE_ID environment variable')
-        process.exit(1)
-      }
-
-      console.log(`=== Linking Projects to Initiative ${initiativeId} ===\n`)
-
-      const filter = projectFilter ? { name: { contains: projectFilter } } : undefined
-      const result = await linkProjectsToInitiative(initiativeId, filter)
-
-      if (result.alreadyLinked.length > 0) {
-        console.log('Already linked:')
-        result.alreadyLinked.forEach(p => console.log(`  ✓ ${p}`))
-      }
-
-      if (result.linked.length > 0) {
-        console.log('\nNewly linked:')
-        result.linked.forEach(p => console.log(`  ✅ ${p}`))
-      }
-
-      if (result.failed.length > 0) {
-        console.log('\nFailed:')
-        result.failed.forEach(p => console.log(`  ❌ ${p}`))
-      }
-
-      console.log(`\nSummary: ${result.linked.length} linked, ${result.alreadyLinked.length} already linked, ${result.failed.length} failed`)
-    } else if (command === 'check') {
-      const projectId = process.argv[3]
-      const checkInitiativeId = process.argv[4] || DEFAULT_INITIATIVE_ID
-
-      if (!projectId || !checkInitiativeId) {
-        console.log('Usage: initiative.ts check <projectId> <initiativeId>')
-        process.exit(1)
-      }
-
-      const isLinked = await isProjectLinkedToInitiative(projectId, checkInitiativeId)
-      console.log(`Project ${projectId} linked to initiative: ${isLinked ? '✓ Yes' : '✗ No'}`)
-    } else {
-      console.log('Usage:')
-      console.log('  initiative.ts link <initiativeId> [projectNameFilter]  - Link projects to initiative')
-      console.log('  initiative.ts check <projectId> <initiativeId>         - Check if project is linked')
-      console.log('')
-      console.log('Environment:')
-      console.log('  LINEAR_DEFAULT_INITIATIVE_ID - Default initiative ID')
-    }
-  }
-
-  main().catch(console.error)
-}

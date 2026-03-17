@@ -9,7 +9,6 @@
  * 5. Issues created with labels
  * 6. Post-execution verification
  */
-import { fileURLToPath } from 'url'
 import { getLinearClient } from './linear-utils'
 import { linkProjectToInitiative, DEFAULT_INITIATIVE_ID } from './initiative'
 import { ensureLabelsExist, extractUniqueLabels } from './labels'
@@ -275,58 +274,3 @@ export async function createProjectWithDefaults(
   })
 }
 
-// CLI entry point with example
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  async function main() {
-    const command = process.argv[2]
-
-    if (command === 'example') {
-      console.log('Example ProjectConfig:')
-      console.log(`
-const config: ProjectConfig = {
-  name: 'My Project Phase X: Feature Name',
-  shortDescription: 'Short description under 255 chars for sidebar display.',
-  content: \`# Phase X: Feature Name
-
-## Overview
-Full markdown content with unlimited length.
-
-## Epics
-### Epic 1: Name
-Description of epic.
-
-## Resources
-- [Link 1](url)
-- [Link 2](url)
-
-## Definition of Done
-- [ ] Criterion 1
-- [ ] Criterion 2
-\`,
-  state: 'planned',
-  initiative: '<your-initiative-uuid>',  // Or use DEFAULT_INITIATIVE_ID
-  issues: [
-    {
-      title: 'Issue title',
-      description: 'Issue description',
-      labels: ['label1', 'label2'],
-      priority: 2,
-      estimate: 3
-    }
-  ]
-}
-      `)
-    } else {
-      console.log('Usage:')
-      console.log('  project-template.ts example  - Show example config')
-      console.log('')
-      console.log('Import and use in scripts:')
-      console.log('  import { createProject, createProjectWithDefaults } from "./lib/project-template"')
-      console.log('')
-      console.log('Environment:')
-      console.log('  LINEAR_DEFAULT_INITIATIVE_ID - Default initiative ID for createProjectWithDefaults()')
-    }
-  }
-
-  main().catch(console.error)
-}

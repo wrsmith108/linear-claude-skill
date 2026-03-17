@@ -721,13 +721,16 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
   },
 
   async 'setup'() {
-    // Delegate to setup script
+    // Delegate to setup script — detect if running from dist/ or source
     const { execSync } = await import('child_process');
     const { dirname } = await import('path');
     const { fileURLToPath } = await import('url');
 
     const __dirname = dirname(fileURLToPath(import.meta.url));
-    execSync(`npx tsx ${__dirname}/setup.ts`, { stdio: 'inherit' });
+    const isBundled = import.meta.url.endsWith('.js');
+    const runner = isBundled ? 'node' : 'npx tsx';
+    const ext = isBundled ? '.js' : '.ts';
+    execSync(`${runner} ${__dirname}/setup${ext}`, { stdio: 'inherit' });
   },
 
   async 'whoami'() {

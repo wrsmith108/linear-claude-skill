@@ -7,7 +7,6 @@
  * - All expected issues created
  * - All labels applied
  */
-import { fileURLToPath } from 'url'
 import { getLinearClient } from './linear-utils'
 import { isProjectLinkedToInitiative, DEFAULT_INITIATIVE_ID } from './initiative'
 import { verifyLabelsApplied } from './labels'
@@ -236,59 +235,3 @@ export function printVerificationReport(verification: ProjectVerification): void
   }
 }
 
-// CLI entry point
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  async function main() {
-    const command = process.argv[2]
-
-    if (command === 'all') {
-      const initiativeId = process.argv[3] || DEFAULT_INITIATIVE_ID
-      const projectFilter = process.argv[4]
-
-      if (!initiativeId) {
-        console.log('Usage: verify.ts all <initiativeId> [projectNameFilter]')
-        console.log('Or set LINEAR_DEFAULT_INITIATIVE_ID environment variable')
-        process.exit(1)
-      }
-
-      console.log(`=== Verifying Projects for Initiative ${initiativeId} ===\n`)
-      const filter = projectFilter ? { name: { contains: projectFilter } } : undefined
-      const result = await verifyProjectsForInitiative(initiativeId, filter)
-
-      for (const verification of result.projects) {
-        printVerificationReport(verification)
-      }
-
-      console.log('\n=== Summary ===')
-      console.log(`Total: ${result.summary.total}`)
-      console.log(`Passed: ${result.summary.passed}`)
-      console.log(`Failed: ${result.summary.failed}`)
-
-      if (result.summary.issues.length > 0) {
-        console.log('\nIssues:')
-        result.summary.issues.forEach(i => console.log(`  - ${i}`))
-      }
-    } else if (command === 'project') {
-      const projectName = process.argv[3]
-      const expectedCount = parseInt(process.argv[4] || '0', 10)
-      const initiativeId = process.argv[5] || DEFAULT_INITIATIVE_ID
-
-      if (!projectName) {
-        console.log('Usage: verify.ts project <projectName> [expectedIssueCount] [initiativeId]')
-        process.exit(1)
-      }
-
-      const verification = await verifyProjectCreation(projectName, expectedCount, undefined, initiativeId)
-      printVerificationReport(verification)
-    } else {
-      console.log('Usage:')
-      console.log('  verify.ts all <initiativeId> [projectFilter]       - Verify all projects for initiative')
-      console.log('  verify.ts project <name> [issueCount] [initiative] - Verify specific project')
-      console.log('')
-      console.log('Environment:')
-      console.log('  LINEAR_DEFAULT_INITIATIVE_ID - Default initiative ID')
-    }
-  }
-
-  main().catch(console.error)
-}

@@ -56,7 +56,7 @@ linear issues list
 varlock load 2>&1 | grep LINEAR
 
 # Run commands with secrets injected
-varlock run -- npx tsx scripts/query.ts "query { viewer { name } }"
+varlock run -- npm run query -- "query { viewer { name } }"
 
 # Check schema (safe - no values)
 cat .env.schema | grep LINEAR
@@ -104,7 +104,7 @@ cat .env
 Run the setup check to verify your configuration:
 
 ```bash
-npx tsx scripts/setup.ts
+npm run setup
 ```
 
 This will check:
@@ -137,7 +137,7 @@ echo 'LINEAR_API_KEY=lin_api_your_key_here' >> ~/.claude/.env
 Verify everything works:
 
 ```bash
-npx tsx scripts/query.ts "query { viewer { name } }"
+npm run query -- "query { viewer { name } }"
 ```
 
 You should see your name from Linear.
@@ -146,19 +146,19 @@ You should see your name from Linear.
 
 ```bash
 # Create issue in a project
-npx tsx scripts/linear-ops.ts create-issue "Project" "Title" "Description"
+npm run ops -- create-issue "Project" "Title" "Description"
 
 # Update issue status
-npx tsx scripts/linear-ops.ts status Done ENG-123 ENG-124
+npm run ops -- status Done ENG-123 ENG-124
 
 # Create sub-issue
-npx tsx scripts/linear-ops.ts create-sub-issue ENG-100 "Sub-task" "Details"
+npm run ops -- create-sub-issue ENG-100 "Sub-task" "Details"
 
 # Update project status
-npx tsx scripts/linear-ops.ts project-status "Phase 1" completed
+npm run ops -- project-status "Phase 1" completed
 
 # Show all commands
-npx tsx scripts/linear-ops.ts help
+npm run ops -- help
 ```
 
 See [Project Management Commands](#project-management-commands) for full reference.
@@ -175,24 +175,24 @@ See [Project Management Commands](#project-management-commands) for full referen
 
 1. **Create the project first**:
    ```bash
-   npx tsx scripts/linear-ops.ts create-project "Phase X: Feature Name" "My Initiative"
+   npm run ops -- create-project "Phase X: Feature Name" "My Initiative"
    ```
 
 2. **Set project state to Planned**:
    ```bash
-   npx tsx scripts/linear-ops.ts project-status "Phase X: Feature Name" planned
+   npm run ops -- project-status "Phase X: Feature Name" planned
    ```
 
 3. **Create issues directly in the project**:
    ```bash
-   npx tsx scripts/linear-ops.ts create-issue "Phase X: Feature Name" "Parent task" "Description"
-   npx tsx scripts/linear-ops.ts create-sub-issue ENG-XXX "Sub-task 1" "Description"
-   npx tsx scripts/linear-ops.ts create-sub-issue ENG-XXX "Sub-task 2" "Description"
+   npm run ops -- create-issue "Phase X: Feature Name" "Parent task" "Description"
+   npm run ops -- create-sub-issue ENG-XXX "Sub-task 1" "Description"
+   npm run ops -- create-sub-issue ENG-XXX "Sub-task 2" "Description"
    ```
 
 4. **Update project state when work begins**:
    ```bash
-   npx tsx scripts/linear-ops.ts project-status "Phase X: Feature Name" in-progress
+   npm run ops -- project-status "Phase X: Feature Name" in-progress
    ```
 
 #### Why This Matters
@@ -220,7 +220,7 @@ create-issue "Phase 6A" "New feature"  # Wrong project
 Update a project's state in Linear. Accepts user-friendly terminology that maps to Linear's API.
 
 ```bash
-npx tsx scripts/linear-ops.ts project-status <project-name> <state>
+npm run ops -- project-status <project-name> <state>
 ```
 
 **Valid States:**
@@ -236,13 +236,13 @@ npx tsx scripts/linear-ops.ts project-status <project-name> <state>
 **Examples:**
 ```bash
 # Start working on a project
-npx tsx scripts/linear-ops.ts project-status "Phase 8: MCP Decision Engine" in-progress
+npm run ops -- project-status "Phase 8: MCP Decision Engine" in-progress
 
 # Mark project complete
-npx tsx scripts/linear-ops.ts project-status "Phase 8" completed
+npm run ops -- project-status "Phase 8" completed
 
 # Partial name matching works
-npx tsx scripts/linear-ops.ts project-status "Phase 8" paused
+npm run ops -- project-status "Phase 8" paused
 ```
 
 ### link-initiative
@@ -250,16 +250,16 @@ npx tsx scripts/linear-ops.ts project-status "Phase 8" paused
 Link an existing project to an initiative.
 
 ```bash
-npx tsx scripts/linear-ops.ts link-initiative <project-name> <initiative-name>
+npm run ops -- link-initiative <project-name> <initiative-name>
 ```
 
 **Examples:**
 ```bash
 # Link a project to an initiative
-npx tsx scripts/linear-ops.ts link-initiative "Phase 8: MCP Decision Engine" "Q1 Goals"
+npm run ops -- link-initiative "Phase 8: MCP Decision Engine" "Q1 Goals"
 
 # Partial matching works
-npx tsx scripts/linear-ops.ts link-initiative "Phase 8" "Q1 Goals"
+npm run ops -- link-initiative "Phase 8" "Q1 Goals"
 ```
 
 ### unlink-initiative
@@ -267,16 +267,16 @@ npx tsx scripts/linear-ops.ts link-initiative "Phase 8" "Q1 Goals"
 Remove a project from an initiative.
 
 ```bash
-npx tsx scripts/linear-ops.ts unlink-initiative <project-name> <initiative-name>
+npm run ops -- unlink-initiative <project-name> <initiative-name>
 ```
 
 **Examples:**
 ```bash
 # Remove incorrect link
-npx tsx scripts/linear-ops.ts unlink-initiative "Phase 8" "Linear Skill"
+npm run ops -- unlink-initiative "Phase 8" "Linear Skill"
 
 # Clean up test links
-npx tsx scripts/linear-ops.ts unlink-initiative "Test Project" "Q1 Goals"
+npm run ops -- unlink-initiative "Test Project" "Q1 Goals"
 ```
 
 **Error Handling:**
@@ -287,26 +287,26 @@ npx tsx scripts/linear-ops.ts unlink-initiative "Test Project" "Q1 Goals"
 
 ```bash
 # 1. Create project linked to initiative
-npx tsx scripts/linear-ops.ts create-project "Phase 11: New Feature" "Q1 Goals"
+npm run ops -- create-project "Phase 11: New Feature" "Q1 Goals"
 
 # 2. Set state to planned
-npx tsx scripts/linear-ops.ts project-status "Phase 11" planned
+npm run ops -- project-status "Phase 11" planned
 
 # 3. Create issues in the project
-npx tsx scripts/linear-ops.ts create-issue "Phase 11" "Parent task" "Description"
-npx tsx scripts/linear-ops.ts create-sub-issue ENG-XXX "Sub-task 1" "Details"
+npm run ops -- create-issue "Phase 11" "Parent task" "Description"
+npm run ops -- create-sub-issue ENG-XXX "Sub-task 1" "Details"
 
 # 4. Start work - update to in-progress
-npx tsx scripts/linear-ops.ts project-status "Phase 11" in-progress
+npm run ops -- project-status "Phase 11" in-progress
 
 # 5. Mark issues done
-npx tsx scripts/linear-ops.ts status Done ENG-XXX ENG-YYY
+npm run ops -- status Done ENG-XXX ENG-YYY
 
 # 6. Complete project
-npx tsx scripts/linear-ops.ts project-status "Phase 11" completed
+npm run ops -- project-status "Phase 11" completed
 
 # 7. (Optional) Link to additional initiative
-npx tsx scripts/linear-ops.ts link-initiative "Phase 11" "Q2 Goals"
+npm run ops -- link-initiative "Phase 11" "Q2 Goals"
 ```
 
 ---
@@ -482,10 +482,10 @@ Uses **domain-based label taxonomy**. See [docs/labels.md](docs/labels.md).
 
 ```bash
 # Validate labels
-npx tsx scripts/linear-ops.ts labels validate "feature,security"
+npm run ops -- labels validate "feature,security"
 
 # Suggest labels for issue
-npx tsx scripts/linear-ops.ts labels suggest "Fix XSS vulnerability"
+npm run ops -- labels suggest "Fix XSS vulnerability"
 ```
 
 ## SDK Automation Scripts
@@ -512,7 +512,7 @@ See **[api.md](api.md)** for complete documentation including:
 **Quick ad-hoc query:**
 
 ```bash
-npx tsx scripts/query.ts "query { viewer { name } }"
+npm run query -- "query { viewer { name } }"
 ```
 
 ## Projects & Initiatives
@@ -523,15 +523,15 @@ For advanced project and initiative management patterns, see **[projects.md](pro
 
 ```bash
 # Create project linked to initiative
-npx tsx scripts/linear-ops.ts create-project "Phase X: Name" "My Initiative"
+npm run ops -- create-project "Phase X: Name" "My Initiative"
 
 # Update project status
-npx tsx scripts/linear-ops.ts project-status "Phase X" in-progress
-npx tsx scripts/linear-ops.ts project-status "Phase X" completed
+npm run ops -- project-status "Phase X" in-progress
+npm run ops -- project-status "Phase X" completed
 
 # Link/unlink projects to initiatives
-npx tsx scripts/linear-ops.ts link-initiative "Phase X" "My Initiative"
-npx tsx scripts/linear-ops.ts unlink-initiative "Phase X" "Old Initiative"
+npm run ops -- link-initiative "Phase X" "My Initiative"
+npm run ops -- unlink-initiative "Phase X" "Old Initiative"
 ```
 
 **Key topics in projects.md:**
@@ -553,10 +553,10 @@ For bulk synchronization of code changes to Linear, see **[sync.md](sync.md)**.
 
 ```bash
 # Bulk update issues to Done
-npx tsx scripts/linear-ops.ts status Done ENG-101 ENG-102 ENG-103
+npm run ops -- status Done ENG-101 ENG-102 ENG-103
 
 # Update project status
-npx tsx scripts/linear-ops.ts project-status "My Project" completed
+npm run ops -- project-status "My Project" completed
 ```
 
 ---

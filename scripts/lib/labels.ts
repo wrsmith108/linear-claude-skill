@@ -5,7 +5,6 @@
  * Handles case-sensitivity issues and provides verification.
  * Integrates with the domain-based label taxonomy.
  */
-import { fileURLToPath } from 'url'
 import { getLinearClient } from './linear-utils'
 import { buildColorMap } from './taxonomy-data'
 import { validateLabels, type ValidationResult } from './taxonomy-validation'
@@ -292,36 +291,3 @@ export {
   AGENT_DESCRIPTIONS
 } from './agent-selection'
 
-// CLI entry point
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  async function main() {
-    const command = process.argv[2]
-    const teamId = process.argv[3]
-
-    if (command === 'list') {
-      const labelMap = await getLabelMap(teamId)
-      console.log('=== Labels ===')
-      for (const [name, id] of labelMap) {
-        console.log(`  ${name}: ${id}`)
-      }
-      console.log(`\nTotal: ${labelMap.size} labels`)
-    } else if (command === 'ensure') {
-      const labels = process.argv.slice(4)
-      if (!teamId || labels.length === 0) {
-        console.log('Usage: labels.ts ensure <teamId> <label1> <label2> ...')
-        process.exit(1)
-      }
-      const result = await ensureLabelsExist(teamId, labels)
-      console.log('=== Label Sync ===')
-      console.log(`Created: ${result.created.join(', ') || 'none'}`)
-      console.log(`Existing: ${result.existing.join(', ') || 'none'}`)
-      console.log(`Failed: ${result.failed.join(', ') || 'none'}`)
-    } else {
-      console.log('Usage:')
-      console.log('  labels.ts list [teamId]')
-      console.log('  labels.ts ensure <teamId> <label1> <label2> ...')
-    }
-  }
-
-  main().catch(console.error)
-}
