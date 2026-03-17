@@ -9,9 +9,12 @@
  *   node scripts/build.mjs
  */
 import * as esbuild from 'esbuild';
-import { globSync } from 'node:fs';
+import { readdirSync } from 'node:fs';
 
-const entryPoints = globSync('scripts/*.ts');
+// Use readdirSync + filter instead of globSync (Node 22+) for compatibility
+const entryPoints = readdirSync('scripts')
+  .filter(f => f.endsWith('.ts'))
+  .map(f => `scripts/${f}`);
 
 await esbuild.build({
   entryPoints,
@@ -23,6 +26,7 @@ await esbuild.build({
   external: ['@linear/sdk'],
   sourcemap: false,
   minify: false,
+  define: { '__BUNDLED__': 'true' },
 });
 
 console.log(`Built ${entryPoints.length} entry points to dist/`);

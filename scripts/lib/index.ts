@@ -97,6 +97,8 @@ export {
   findInitiativeByName,
   findTeamByKey,
   findTeamByName,
+  isValidHealth,
+  VALID_HEALTH_VALUES,
   type HealthStatus,
   type ProjectInfo,
   type InitiativeInfo,

@@ -24,6 +24,9 @@
  *   whoami                                   Show current user and organization
  */
 
+// Defined at build time by esbuild (see scripts/build.mjs)
+declare const __BUNDLED__: boolean | undefined;
+
 import { LinearClient, ProjectUpdateHealthType, InitiativeUpdateHealthType } from '@linear/sdk';
 import {
   getAllLabels,
@@ -727,7 +730,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
     const { fileURLToPath } = await import('url');
 
     const __dirname = dirname(fileURLToPath(import.meta.url));
-    const isBundled = import.meta.url.endsWith('.js');
+    const isBundled = typeof __BUNDLED__ !== 'undefined';
     const runner = isBundled ? 'node' : 'npx tsx';
     const ext = isBundled ? '.js' : '.ts';
     execSync(`${runner} ${__dirname}/setup${ext}`, { stdio: 'inherit' });
