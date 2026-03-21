@@ -1,3 +1,10 @@
+# [2.6.0](https://github.com/wrsmith108/linear-claude-skill/compare/v2.5.1...v2.6.0) (2026-03-21)
+
+
+### Features
+
+* enforce issue creation defaults (descriptions, labels, project) ([12e6ab1](https://github.com/wrsmith108/linear-claude-skill/commit/12e6ab1e48fc010a7437fb9e537dc979cb287e47))
+
 ## [2.5.1](https://github.com/wrsmith108/linear-claude-skill/compare/v2.5.0...v2.5.1) (2026-03-17)
 
 
