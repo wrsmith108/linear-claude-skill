@@ -22,7 +22,7 @@ For ad-hoc queries and automation, use the `@linear/sdk` package with `npx` and 
 The skill includes `scripts/query.ts` for executing GraphQL queries. Run it with:
 
 ```bash
-LINEAR_API_KEY=lin_api_xxx npx tsx scripts/query.ts "query { viewer { id name } }"
+LINEAR_API_KEY=lin_api_xxx npm run query -- "query { viewer { id name } }"
 ```
 
 **Environment Variable**: The script requires `LINEAR_API_KEY` to be set. If not provided to the Claude process, you cannot execute GraphQL queries automatically.
@@ -233,13 +233,13 @@ Use `scripts/sync.ts` for reliable bulk state updates:
 
 ```bash
 # Update multiple issues to Done state (replace PROJ with your team prefix)
-LINEAR_API_KEY=lin_api_xxx npx tsx scripts/sync.ts --issues PROJ-101,PROJ-102,PROJ-103 --state Done
+LINEAR_API_KEY=lin_api_xxx npm run sync -- --issues PROJ-101,PROJ-102,PROJ-103 --state Done
 
 # Preview changes without applying
-LINEAR_API_KEY=lin_api_xxx npx tsx scripts/sync.ts --issues PROJ-101,PROJ-102 --state Done --dry-run
+LINEAR_API_KEY=lin_api_xxx npm run sync -- --issues PROJ-101,PROJ-102 --state Done --dry-run
 
 # Add comment with state change
-LINEAR_API_KEY=lin_api_xxx npx tsx scripts/sync.ts --issues PROJ-101 --state Done --comment "Completed in PR #42"
+LINEAR_API_KEY=lin_api_xxx npm run sync -- --issues PROJ-101 --state Done --comment "Completed in PR #42"
 ```
 
 ---
@@ -373,5 +373,5 @@ const mutation = \`
 Use GraphQL introspection to discover the API schema:
 
 ```bash
-LINEAR_API_KEY=lin_api_xxx npx tsx scripts/query.ts "{ __schema { types { name description } } }"
+LINEAR_API_KEY=lin_api_xxx npm run query -- "{ __schema { types { name description } } }"
 ```

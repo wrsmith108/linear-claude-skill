@@ -1,3 +1,10 @@
+## [2.6.1] - 2026-04-02
+
+### Changed
+- Standardize sub-document paths: sync.md, projects.md, api.md, troubleshooting.md now use `npm run` wrappers instead of bare `npx tsx scripts/` or `npx ts-node scripts/`
+- Add `npm run sync` script to package.json
+- Replace deprecated `npx ts-node` with `npm run sync` in sync.md (~15 refs)
+
 # [2.6.0](https://github.com/wrsmith108/linear-claude-skill/compare/v2.5.1...v2.6.0) (2026-03-21)
 
 

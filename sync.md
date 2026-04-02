@@ -18,10 +18,10 @@ Update multiple issues to a target state:
 
 ```bash
 # Via SDK script
-npx ts-node scripts/sync.ts --issues ENG-432,ENG-433,ENG-434 --state Done
+npm run sync -- --issues ENG-432,ENG-433,ENG-434 --state Done
 
 # Update project status
-npx ts-node scripts/sync.ts --project "Current Phase" --state completed
+npm run sync -- --project "Current Phase" --state completed
 ```
 
 ### Mode 2: Agent-Spawned Sync
@@ -72,7 +72,7 @@ The hook detects Linear issue references in changed files and outputs context fo
 
 ```bash
 # Update multiple issues to Done
-npx ts-node scripts/sync.ts --issues ENG-432,ENG-433,ENG-434,ENG-435 --state Done
+npm run sync -- --issues ENG-432,ENG-433,ENG-434,ENG-435 --state Done
 
 # Output:
 # ✅ ENG-432 → Done
@@ -86,17 +86,17 @@ npx ts-node scripts/sync.ts --issues ENG-432,ENG-433,ENG-434,ENG-435 --state Don
 
 ```bash
 # By project name (searches for match)
-npx ts-node scripts/sync.ts --project "Current Phase" --state completed
+npm run sync -- --project "Current Phase" --state completed
 
 # By project UUID (direct)
-npx ts-node scripts/sync.ts --project-id f41c0e8b-c59c-4aa1-8f50-d44c2820396f --state completed
+npm run sync -- --project-id f41c0e8b-c59c-4aa1-8f50-d44c2820396f --state completed
 ```
 
 ### Combined Sync
 
 ```bash
 # Update issues AND project in one command
-npx ts-node scripts/sync.ts \
+npm run sync -- \
   --issues ENG-432,ENG-433,ENG-434 \
   --state Done \
   --project "Current Phase" \
@@ -172,7 +172,7 @@ Always verify sync completed successfully:
 
 ```bash
 # Query updated issues
-npx ts-node scripts/sync.ts --verify ENG-432,ENG-433,ENG-434 --expected-state Done
+npm run sync -- --verify ENG-432,ENG-433,ENG-434 --expected-state Done
 
 # Output:
 # ✅ ENG-432: Done
@@ -192,7 +192,7 @@ Linear API can fail silently. The sync script handles:
 
 ```bash
 # With verbose output for debugging
-npx ts-node scripts/sync.ts --issues ENG-432,ENG-433 --state Done --verbose
+npm run sync -- --issues ENG-432,ENG-433 --state Done --verbose
 
 # Output includes:
 # [DEBUG] Getting workflow state ID for "Done"
@@ -214,13 +214,13 @@ After completing a feature:
 git log --oneline -10 | grep -oE 'ENG-[0-9]+'
 
 # 2. Bulk update to Done
-npx ts-node scripts/sync.ts --issues ENG-432,ENG-433,ENG-434 --state Done
+npm run sync -- --issues ENG-432,ENG-433,ENG-434 --state Done
 
 # 3. Update project status
-npx ts-node scripts/sync.ts --project "Current Phase" --state completed
+npm run sync -- --project "Current Phase" --state completed
 
 # 4. Verify
-npx ts-node scripts/sync.ts --verify ENG-432,ENG-433,ENG-434 --expected-state Done
+npm run sync -- --verify ENG-432,ENG-433,ENG-434 --expected-state Done
 ```
 
 ### Phase Completion Sync
@@ -229,18 +229,18 @@ When closing out a phase:
 
 ```bash
 # Get all phase issues
-npx ts-node scripts/sync.ts --list-project "Current Phase"
+npm run sync -- --list-project "Current Phase"
 
 # Review which need updating
 # ... identify issues still in Backlog/In Progress ...
 
 # Bulk update implemented issues
-npx ts-node scripts/sync.ts \
+npm run sync -- \
   --issues ENG-432,ENG-433,...,ENG-472 \
   --state Done
 
 # Update project to completed
-npx ts-node scripts/sync.ts --project "Current Phase" --state completed
+npm run sync -- --project "Current Phase" --state completed
 ```
 
 ### PR Preparation Sync
@@ -249,7 +249,7 @@ Before creating a PR:
 
 ```bash
 # Ensure all referenced issues are updated
-npx ts-node scripts/sync.ts \
+npm run sync -- \
   --from-branch feature/search-modal \
   --state "In Review"
 ```

@@ -1,6 +1,6 @@
 {
   "name": "claude-plugin-linear",
-  "version": "2.6.0",
+  "version": "2.6.1",
   "type": "module",
   "description": "Claude Code skill for Linear issue, project, and team management with MCP integration",
   "keywords": [
@@ -41,6 +41,7 @@
     "setup": "node dist/setup.js 2>/dev/null || (echo '[WARN] dist/ not built, using tsx (slower). Run: npm run build' >&2 && npx tsx scripts/setup.ts)",
     "ops": "node dist/linear-ops.js 2>/dev/null || (echo '[WARN] dist/ not built, using tsx (slower). Run: npm run build' >&2 && npx tsx scripts/linear-ops.ts)",
     "query": "node dist/query.js 2>/dev/null || (echo '[WARN] dist/ not built, using tsx (slower). Run: npm run build' >&2 && npx tsx scripts/query.ts)",
+    "sync": "node dist/sync.js 2>/dev/null || npx tsx scripts/sync.ts",
     "test-connection": "node dist/query.js \"query { viewer { name } }\" 2>/dev/null || (echo '[WARN] dist/ not built, using tsx (slower). Run: npm run build' >&2 && npx tsx scripts/query.ts \"query { viewer { name } }\")",
     "upload-image": "node dist/upload-image.js 2>/dev/null || (echo '[WARN] dist/ not built, using tsx (slower). Run: npm run build' >&2 && npx tsx scripts/upload-image.ts)",
     "extract-image": "node dist/extract-image.js 2>/dev/null || (echo '[WARN] dist/ not built, using tsx (slower). Run: npm run build' >&2 && npx tsx scripts/extract-image.ts)",
