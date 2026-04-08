@@ -1,3 +1,10 @@
+## [2.6.3](https://github.com/wrsmith108/linear-claude-skill/compare/v2.6.2...v2.6.3) (2026-04-08)
+
+
+### Bug Fixes
+
+* replace 2>/dev/null with file-existence check, add arg forwarding test ([b5e965c](https://github.com/wrsmith108/linear-claude-skill/commit/b5e965c1bfb468008e98c783691d243dde151c1a))
+
 ## [2.6.2](https://github.com/wrsmith108/linear-claude-skill/compare/v2.6.1...v2.6.2) (2026-04-08)
 
 
