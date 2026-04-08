@@ -4,7 +4,7 @@ A comprehensive [Claude Code](https://claude.ai/code) skill for managing Linear 
 
 ## Features
 
-- **esbuild Pre-compilation** — 18x faster CLI startup (~50ms vs ~1s) with transparent tsx fallback
+- **esbuild Pre-compilation** — 18x faster CLI startup (~50ms vs ~1s) with transparent tsx fallback via shared `scripts/run.sh`
 - **Label Taxonomy System** — Domain-based labels for consistent categorization and agent routing
 - **First-Time Setup Check** — Automatic configuration validation with actionable guidance
 - **High-Level Operations** — Simple commands for initiatives, projects, and status updates
@@ -128,6 +128,7 @@ linear-claude-skill/
 ├── docs/
 │   └── labels.md         # Label taxonomy documentation
 ├── scripts/
+│   ├── run.sh            # Shared runner (dist/ with tsx fallback)
 │   ├── build.mjs         # esbuild pre-compilation script
 │   ├── linear-ops.ts     # High-level operations (issues, projects, labels)
 │   ├── query.ts          # GraphQL query runner
@@ -307,13 +308,13 @@ Synchronize code changes with Linear issues in bulk:
 
 ```bash
 # Update multiple issues to Done
-npx tsx scripts/sync.ts --issues ENG-432,ENG-433,ENG-434 --state Done
+npm run sync -- --issues ENG-432,ENG-433,ENG-434 --state Done
 
 # Update project status after phase completion
-npx tsx scripts/sync.ts --project "Phase 11" --state completed
+npm run sync -- --project "Phase 11" --state completed
 
 # Verify sync completed
-npx tsx scripts/sync.ts --verify ENG-432,ENG-433 --expected-state Done
+npm run sync -- --verify ENG-432,ENG-433 --expected-state Done
 ```
 
 #### Agent-Spawned Sync
@@ -350,6 +351,14 @@ See `sync.md` for complete patterns including AgentDB integration.
 
 ## Changelog
 
+### 2.6.3 (2026-04-08)
+
+- Extracted shared `scripts/run.sh` — all 7 npm scripts now use a single runner instead of duplicated shell wrappers
+- Replaced `2>/dev/null` with `[ -f dist/X.js ]` file-existence checks so runtime errors surface properly
+- Added `f() { ...; }; f` argument forwarding to all npm scripts (community fix from PR #17 by @aphexcx)
+- Added smoke test for npm script argument forwarding
+- Consistent `[WARN]` fallback messages across all scripts including `sync`
+
 ### 2.5.0 (2026-03-17)
 
 - Consolidated `requireClient()` to delegate to `getLinearClient()` — single client singleton
@@ -362,7 +371,7 @@ See `sync.md` for complete patterns including AgentDB integration.
 
 - Added esbuild pre-compilation for **18x faster CLI startup** (~50ms vs ~1s)
 - Lazy `getLinearClient()` — SDK initialization deferred to first API call
-- Transparent fallback: `node dist/X.js || npx tsx scripts/X.ts`
+- Transparent fallback via shared `scripts/run.sh`
 - Removed `import.meta.url` CLI guards from lib files
 - `npm run` as canonical invocation form in all documentation
 - CI workflow with build verification and smoke tests

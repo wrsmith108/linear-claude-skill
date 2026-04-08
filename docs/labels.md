@@ -157,16 +157,16 @@ Use `linear-ops.ts` to work with the taxonomy:
 
 ```bash
 # Show full taxonomy
-npx tsx scripts/linear-ops.ts labels taxonomy
+npm run ops -- labels taxonomy
 
 # Validate a label set
-npx tsx scripts/linear-ops.ts labels validate "feature,security,breaking-change"
+npm run ops -- labels validate "feature,security,breaking-change"
 
 # Suggest labels for an issue title
-npx tsx scripts/linear-ops.ts labels suggest "Fix XSS vulnerability in login form"
+npm run ops -- labels suggest "Fix XSS vulnerability in login form"
 
 # Show agent recommendations for labels
-npx tsx scripts/linear-ops.ts labels agents "security,performance"
+npm run ops -- labels agents "security,performance"
 ```
 
 ---

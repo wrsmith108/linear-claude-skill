@@ -42,6 +42,7 @@ linear-claude-skill/
 ├── hooks/
 │   └── post-edit.sh      # Auto-sync hook
 ├── scripts/
+│   ├── run.sh            # Shared runner (dist/ with tsx fallback)
 │   ├── linear-ops.ts     # CLI for high-level operations (main entry point)
 │   ├── query.ts          # GraphQL query runner
 │   ├── setup.ts          # Configuration validator
@@ -88,7 +89,7 @@ All TypeScript entry points in `scripts/` are pre-compiled to `dist/` using esbu
 
 **`__BUNDLED__` build-time define**: The `linear-ops.ts` entry point declares `__BUNDLED__` as a global. At build time, esbuild replaces all occurrences with `true`. This lets code detect whether it is running from a pre-built bundle or via tsx at development time.
 
-**Transparent fallback pattern**: Each npm script in `package.json` tries the pre-built `dist/*.js` file first, falling back to `npx tsx` if dist is missing:
+**Shared runner (`scripts/run.sh`)**: All npm scripts delegate to a single shell script that checks for the pre-built `dist/*.js` file first, falling back to `npx tsx` if dist is missing:
 ```
 "ops": "sh scripts/run.sh linear-ops"
 ```
