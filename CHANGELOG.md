@@ -1,3 +1,10 @@
+## [2.6.1](https://github.com/wrsmith108/linear-claude-skill/compare/v2.6.0...v2.6.1) (2026-04-08)
+
+
+### Bug Fixes
+
+* properly pass CLI args through npm scripts ([#17](https://github.com/wrsmith108/linear-claude-skill/issues/17)) ([cb53cec](https://github.com/wrsmith108/linear-claude-skill/commit/cb53cece10c3d7d87a64a931968381470964bba9))
+
 ## [2.6.1] - 2026-04-02
 
 ### Changed
