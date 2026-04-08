@@ -83,6 +83,19 @@ describe('smoke tests', () => {
     }
   });
 
+  it('npm run ops -- help forwards args correctly', () => {
+    const output = execSync('npm run ops -- help', {
+      stdio: 'pipe',
+      cwd: ROOT,
+      env: { ...process.env, LINEAR_API_KEY: '' }
+    });
+    const text = output.toString();
+    assert.ok(
+      text.includes('Linear High-Level Operations'),
+      'Expected help output from npm run ops -- help, got: ' + text.slice(0, 200)
+    );
+  });
+
   it('external SDK is not bundled into dist/linear-ops.js', () => {
     const content = readFileSync(join(DIST, 'linear-ops.js'), 'utf8');
     assert.ok(
