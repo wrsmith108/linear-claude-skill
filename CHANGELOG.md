@@ -1,3 +1,10 @@
+## [2.6.2](https://github.com/wrsmith108/linear-claude-skill/compare/v2.6.1...v2.6.2) (2026-04-08)
+
+
+### Bug Fixes
+
+* apply f() wrapper and [WARN] message to remaining npm scripts ([bd5b1e1](https://github.com/wrsmith108/linear-claude-skill/commit/bd5b1e10f6a6110057e3dbd68e27ad09a4259006)), closes [#17](https://github.com/wrsmith108/linear-claude-skill/issues/17)
+
 ## [2.6.1](https://github.com/wrsmith108/linear-claude-skill/compare/v2.6.0...v2.6.1) (2026-04-08)
 
 
