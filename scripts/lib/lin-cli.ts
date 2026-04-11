@@ -104,7 +104,7 @@ export async function detectLinCli(): Promise<LinCliInfo> {
 
   try {
     const { stdout } = await execFile('lin', ['--version'], { timeout: 5000 });
-    const version = stdout.trim().replace(/^lin\s+/i, '').replace(/^v/i, '');
+    const version = parseLinVersion(stdout);
 
     const meetsMin = compareVersions(version, MIN_LIN_VERSION) >= 0;
     _cachedDetection = {
@@ -141,7 +141,7 @@ export function _resetDetectionCache(): void {
 
 /**
  * Execute a `lin` command with --json output.
- * Uses AbortController for timeout. Increments failure counter on error.
+ * Increments failure counter on error; circuit-breaker trips after MAX_FAILURES.
  */
 export async function execLin<T = unknown>(
   args: string[],
@@ -152,22 +152,14 @@ export async function execLin<T = unknown>(
     return { success: false, error: 'circuit-breaker: too many failures', exitCode: -1 };
   }
 
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-
   try {
     const { stdout } = await execFile('lin', [...args, '--json'], {
-      signal: controller.signal,
       timeout: timeoutMs,
-      env: process.env,
-      maxBuffer: 10 * 1024 * 1024, // 10MB
+      maxBuffer: 2 * 1024 * 1024,
     });
-
-    clearTimeout(timer);
 
     try {
       const data = JSON.parse(stdout) as T;
-      // Reset failure count on success
       _failureCount = 0;
       return { success: true, data, exitCode: 0 };
     } catch {
@@ -175,7 +167,6 @@ export async function execLin<T = unknown>(
       return { success: false, error: 'invalid JSON response', exitCode: 0 };
     }
   } catch (err) {
-    clearTimeout(timer);
     _failureCount++;
     const msg = err instanceof Error ? err.message : String(err);
     return { success: false, error: msg, exitCode: 1 };
@@ -192,10 +183,22 @@ export async function execLin<T = unknown>(
  * This is the single entry point used by all command handlers.
  * Fallback is invisible to the user — no output about which backend was used.
  */
+// Overload: transform returns void (side-effect only, e.g. console output)
+export async function tryLin(
+  args: string[],
+  fallback: () => Promise<void>,
+  transform: (data: unknown) => void
+): Promise<void>;
+// Overload: transform returns T (data transformation)
 export async function tryLin<T>(
   args: string[],
   fallback: () => Promise<T>,
   transform?: (data: unknown) => T
+): Promise<T>;
+export async function tryLin<T>(
+  args: string[],
+  fallback: () => Promise<T>,
+  transform?: (data: unknown) => T | void
 ): Promise<T> {
   if (!(await isLinCliAvailable())) {
     return fallback();
@@ -203,7 +206,11 @@ export async function tryLin<T>(
 
   const result = await execLin(args);
   if (result.success && result.data !== undefined) {
-    return transform ? transform(result.data) : result.data as T;
+    if (transform) {
+      transform(result.data);
+      return undefined as T;
+    }
+    return result.data as T;
   }
 
   // Silent fallback
@@ -214,10 +221,6 @@ export async function tryLin<T>(
 // Typed convenience wrappers
 // ============================================================================
 
-export async function linMe(): Promise<LinCliResult<LinUser>> {
-  return execLin<LinUser>(['me']);
-}
-
 export async function linUpdateIssueState(
   identifier: string,
   state: string
@@ -225,27 +228,14 @@ export async function linUpdateIssueState(
   return execLin<LinIssue>(['issues', 'update', identifier, '--state', state]);
 }
 
-export async function linListInitiatives(): Promise<LinCliResult<LinInitiative[]>> {
-  return execLin<LinInitiative[]>(['initiatives', 'list']);
-}
-
-export async function linListIssues(
-  filters?: IssueFilters
-): Promise<LinCliResult<LinIssue[]>> {
-  const args = ['issues', 'list'];
-  if (filters?.team) args.push('--team', filters.team);
-  if (filters?.state) args.push('--state', filters.state);
-  if (filters?.label) args.push('--label', filters.label);
-  return execLin<LinIssue[]>(args);
-}
-
-export async function linSearch(query: string): Promise<LinCliResult<LinIssue[]>> {
-  return execLin<LinIssue[]>(['search', query]);
-}
-
 // ============================================================================
-// Version comparison
+// Helpers
 // ============================================================================
+
+/** Parse version string from `lin --version` output */
+export function parseLinVersion(raw: string): string {
+  return raw.trim().replace(/^lin\s+/i, '').replace(/^v/i, '');
+}
 
 /**
  * Compare two version strings (semver or calver).

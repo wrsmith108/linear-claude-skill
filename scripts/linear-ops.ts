@@ -659,12 +659,11 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
         continue;
       }
 
-      // Try lin fast-path first (uses full identifier e.g. "SMI-123")
-      const identifier = num.includes('-') ? num : `${num}`;
+      // Try lin fast-path (requires full identifier e.g. "SMI-123")
       if (linAvailable && num.includes('-')) {
-        const linResult = await linUpdateIssueState(identifier, normalizedState);
+        const linResult = await linUpdateIssueState(num, normalizedState);
         if (linResult.success) {
-          console.log(`  [OK] ${identifier} -> ${normalizedState}`);
+          console.log(`  [OK] ${num} -> ${normalizedState}`);
           success++;
           continue;
         }
@@ -736,7 +735,6 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
         console.log(`    URL: ${i.url || ''}`);
         console.log('');
       }
-      return undefined as never;
     });
   },
 
@@ -836,7 +834,6 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
           console.log(`  - ${t.name} (${t.key})`);
         }
       }
-      return undefined as never;
     });
   },
 
@@ -1372,7 +1369,6 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
         console.log(`  ${i.identifier || i.id}  ${i.title}`);
         if (i.state) console.log(`    State: ${typeof i.state === 'object' ? (i.state as Record<string, unknown>).name : i.state}`);
       }
-      return undefined as never;
     });
   },
 
@@ -1433,7 +1429,6 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
         const s = typeof i.state === 'object' ? (i.state as Record<string, unknown>).name : i.state;
         console.log(`    State: ${s || 'Unknown'}  Priority: ${i.priority || 0}`);
       }
-      return undefined as never;
     });
   },
 
