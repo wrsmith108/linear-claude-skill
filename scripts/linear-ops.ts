@@ -298,10 +298,8 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
     console.log(`  Found project: ${project.name}`);
     console.log(`  Current state: ${project.state}`);
 
-    // Update project state using the SDK's updateProject method
-    await (requireClient() as any).updateProject(project.id, {
-      state: apiState
-    });
+    // 'state' is accepted by the GraphQL API but not in the SDK's ProjectUpdateInput type
+    await requireClient().updateProject(project.id, { state: apiState } as Record<string, string>);
 
     console.log(`\n[SUCCESS] Project state updated!`);
     console.log(`  ${project.name}: ${project.state} -> ${displayState}`);
@@ -343,7 +341,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
     console.log(`  Found initiative: ${initiative.name}`);
 
     // Link project to initiative using createInitiativeToProject
-    await (requireClient() as any).createInitiativeToProject({
+    await requireClient().createInitiativeToProject({
       projectId: project.id,
       initiativeId: initiative.id
     });
@@ -388,18 +386,10 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
     const initiative = initiatives.nodes[0];
     console.log(`  Found initiative: ${initiative.name}`);
 
-    // Find the initiative-to-project link by querying initiativeToProjects
-    // Note: Linear SDK filter doesn't support nested entity filters well,
-    // so we fetch all links for the initiative and filter client-side
-    const allLinks = await (requireClient() as any).initiativeToProjects({
-      filter: {
-        initiativeId: { eq: initiative.id }
-      }
-    });
-
-    // Find the specific link for our project
-    const matchingLinks = (allLinks.nodes || []).filter(
-      (l: any) => l.projectId === project.id
+    // Fetch all initiative-to-project links and filter client-side
+    const allLinks = await requireClient().initiativeToProjects();
+    const matchingLinks = allLinks.nodes.filter(
+      (l) => l.initiativeId === initiative.id && l.projectId === project.id
     );
 
     if (matchingLinks.length === 0) {
@@ -410,7 +400,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
     const link = matchingLinks[0];
 
     // Delete the initiative-to-project link
-    await (requireClient() as any).deleteInitiativeToProject(link.id);
+    await requireClient().deleteInitiativeToProject(link.id);
 
     console.log(`\n[SUCCESS] Project unlinked from initiative!`);
     console.log(`  Project: ${project.name}`);
