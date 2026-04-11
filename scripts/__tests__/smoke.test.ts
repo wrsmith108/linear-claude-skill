@@ -7,7 +7,7 @@
  * - CLI commands exit with expected codes
  * - External dependencies are not inlined
  *
- * Run: node --test scripts/__tests__/smoke.test.ts
+ * Run: npm test (requires: npm run build)
  * Requires: dist/ to exist (run `npm run build` first)
  */
 
@@ -24,8 +24,7 @@ const SCRIPTS = join(ROOT, 'scripts');
 describe('smoke tests', () => {
   before(() => {
     if (!existsSync(join(DIST, 'linear-ops.js'))) {
-      console.log('SKIP: dist/ not built — run `npm run build` first');
-      process.exit(0);
+      throw new Error('dist/ not built — run `npm run build` first');
     }
   });
 

@@ -26,6 +26,7 @@
     "SKILL.md",
     "scripts",
     "dist",
+    "!dist/__tests__",
     "docs",
     "hooks",
     "api.md",
@@ -45,7 +46,8 @@
     "test-connection": "sh scripts/run.sh query \"query { viewer { name } }\"",
     "upload-image": "sh scripts/run.sh upload-image",
     "extract-image": "sh scripts/run.sh extract-image",
-    "test": "node --test scripts/__tests__/smoke.test.ts",
+    "pretest": "npm run build",
+    "test": "node --test dist/__tests__/smoke.test.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint scripts/",
     "lint:fix": "eslint scripts/ --fix"
@@ -56,6 +58,9 @@
     "skills": [
       "."
     ]
+  },
+  "engines": {
+    "node": ">=20.11.0"
   },
   "dependencies": {
     "@linear/sdk": "^68.1.0"
