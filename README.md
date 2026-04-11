@@ -389,6 +389,23 @@ See `sync.md` for complete patterns including AgentDB integration.
 
 See [CHANGELOG.md](CHANGELOG.md) for full version history.
 
+## Development
+
+### Prerequisites
+
+- Node.js >= 20.11.0 (see `.nvmrc`)
+- npm
+
+### Quick Start
+
+```bash
+git clone https://github.com/wrsmith108/linear-claude-skill.git
+cd linear-claude-skill
+npm ci
+npm test        # builds and runs smoke tests (no API key needed)
+npm run build   # compile TypeScript to dist/
+```
+
 ## Contributing
 
 Contributions welcome! Please submit issues and PRs to improve the skill.
