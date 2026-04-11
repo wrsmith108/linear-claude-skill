@@ -1,3 +1,10 @@
+## [2.7.1](https://github.com/wrsmith108/linear-claude-skill/compare/v2.7.0...v2.7.1) (2026-04-11)
+
+
+### Bug Fixes
+
+* compile test files via esbuild for Node 20 compatibility ([5ae179a](https://github.com/wrsmith108/linear-claude-skill/commit/5ae179ada74434dc093a2caf183af0610af91503))
+
 # [2.7.0](https://github.com/wrsmith108/linear-claude-skill/compare/v2.6.3...v2.7.0) (2026-04-11)
 
 
