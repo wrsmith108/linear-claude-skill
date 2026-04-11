@@ -1,3 +1,10 @@
+## [2.7.2](https://github.com/wrsmith108/linear-claude-skill/compare/v2.7.1...v2.7.2) (2026-04-11)
+
+
+### Bug Fixes
+
+* remove `as any` casts from linear-ops.ts (SMI-4085) ([60bd268](https://github.com/wrsmith108/linear-claude-skill/commit/60bd268cdd3d8141314d7a99c5d965a7d072f1c6))
+
 ## [2.7.1](https://github.com/wrsmith108/linear-claude-skill/compare/v2.7.0...v2.7.1) (2026-04-11)
 
 
