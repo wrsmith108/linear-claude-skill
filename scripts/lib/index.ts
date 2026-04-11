@@ -105,6 +105,26 @@ export {
   type TeamInfo
 } from './linear-utils'
 
+// Lin CLI integration (optional fast-path)
+export {
+  detectLinCli,
+  isLinCliAvailable,
+  execLin,
+  tryLin,
+  linMe,
+  linUpdateIssueState,
+  linListInitiatives,
+  linListIssues,
+  linSearch,
+  _resetDetectionCache,
+  type LinCliInfo,
+  type LinCliResult,
+  type LinUser,
+  type LinIssue,
+  type LinInitiative,
+  type IssueFilters
+} from './lin-cli'
+
 // Project template
 export {
   createProject,

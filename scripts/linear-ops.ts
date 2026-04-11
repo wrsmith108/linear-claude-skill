@@ -22,6 +22,8 @@
  *   list-projects [initiative]               List projects (optionally filter by initiative)
  *   setup                                    Check setup and configuration
  *   whoami                                   Show current user and organization
+ *   search <query>                           Search issues across workspace
+ *   list-issues [--team X] [--state Y]       List issues with optional filters
  */
 
 // Defined at build time by esbuild (see scripts/build.mjs)
@@ -38,7 +40,10 @@ import {
   formatSuggestions,
   formatAgentSelection,
   formatAgentMatrix,
-  getLinearClient
+  getLinearClient,
+  tryLin,
+  isLinCliAvailable,
+  linUpdateIssueState
 } from './lib';
 
 // Lazy API key validation and client creation
@@ -642,6 +647,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
     // Process each issue
     let success = 0;
     let failed = 0;
+    const linAvailable = await isLinCliAvailable();
 
     for (const num of issueNumbers) {
       // Strip prefix if present (e.g., "ENG-123" -> "123", "ENG-456" -> "456")
@@ -653,8 +659,20 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
         continue;
       }
 
+      // Try lin fast-path first (uses full identifier e.g. "SMI-123")
+      const identifier = num.includes('-') ? num : `${num}`;
+      if (linAvailable && num.includes('-')) {
+        const linResult = await linUpdateIssueState(identifier, normalizedState);
+        if (linResult.success) {
+          console.log(`  [OK] ${identifier} -> ${normalizedState}`);
+          success++;
+          continue;
+        }
+        // Silent fallback to SDK
+      }
+
       try {
-        // Find issue by number
+        // Find issue by number (SDK path)
         const issues = await requireClient().issues({
           filter: { number: { eq: issueNum } }
         });
@@ -683,22 +701,43 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
   async 'list-initiatives'() {
     console.log('Fetching initiatives...\n');
 
-    const initiatives = await requireClient().initiatives({ first: 50 });
+    const sdkListInitiatives = async () => {
+      const initiatives = await requireClient().initiatives({ first: 50 });
 
-    if (initiatives.nodes.length === 0) {
-      console.log('No initiatives found.');
-      return;
-    }
+      if (initiatives.nodes.length === 0) {
+        console.log('No initiatives found.');
+        return;
+      }
 
-    console.log('Initiatives:');
-    for (const init of initiatives.nodes) {
-      const status = init.status || 'No status';
-      console.log(`  - ${init.name}`);
-      console.log(`    ID: ${init.id}`);
-      console.log(`    Status: ${status}`);
-      console.log(`    URL: ${init.url}`);
-      console.log('');
-    }
+      console.log('Initiatives:');
+      for (const init of initiatives.nodes) {
+        const status = init.status || 'No status';
+        console.log(`  - ${init.name}`);
+        console.log(`    ID: ${init.id}`);
+        console.log(`    Status: ${status}`);
+        console.log(`    URL: ${init.url}`);
+        console.log('');
+      }
+    };
+
+    await tryLin(['initiatives', 'list'], sdkListInitiatives, (data: unknown) => {
+      const initiatives = Array.isArray(data) ? data : [];
+      if (initiatives.length === 0) {
+        console.log('No initiatives found.');
+        return;
+      }
+
+      console.log('Initiatives:');
+      for (const init of initiatives) {
+        const i = init as Record<string, unknown>;
+        console.log(`  - ${i.name}`);
+        console.log(`    ID: ${i.id}`);
+        console.log(`    Status: ${i.status || 'No status'}`);
+        console.log(`    URL: ${i.url || ''}`);
+        console.log('');
+      }
+      return undefined as never;
+    });
   },
 
   async 'list-projects'(initiativeName?: string) {
@@ -754,23 +793,51 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
   async 'whoami'() {
     console.log('Fetching user info...\n');
 
-    const me = await requireClient().viewer;
-    const org = await me.organization;
-    const teams = await me.teams();
+    // SDK fallback
+    const sdkWhoami = async () => {
+      const me = await requireClient().viewer;
+      const org = await me.organization;
+      const teams = await me.teams();
 
-    console.log('Current User:');
-    console.log(`  Name:  ${me.name}`);
-    console.log(`  Email: ${me.email}`);
-    console.log(`  ID:    ${me.id}`);
-    console.log('');
-    console.log('Organization:');
-    console.log(`  Name: ${org?.name || 'Unknown'}`);
-    console.log(`  ID:   ${org?.id || 'Unknown'}`);
-    console.log('');
-    console.log('Teams:');
-    for (const team of teams.nodes) {
-      console.log(`  - ${team.name} (${team.key})`);
-    }
+      console.log('Current User:');
+      console.log(`  Name:  ${me.name}`);
+      console.log(`  Email: ${me.email}`);
+      console.log(`  ID:    ${me.id}`);
+      console.log('');
+      console.log('Organization:');
+      console.log(`  Name: ${org?.name || 'Unknown'}`);
+      console.log(`  ID:   ${org?.id || 'Unknown'}`);
+      console.log('');
+      console.log('Teams:');
+      for (const team of teams.nodes) {
+        console.log(`  - ${team.name} (${team.key})`);
+      }
+    };
+
+    await tryLin(['me'], sdkWhoami, (data: unknown) => {
+      // Format lin JSON output to match existing display
+      const user = data as Record<string, unknown>;
+      console.log('Current User:');
+      console.log(`  Name:  ${user.name || 'Unknown'}`);
+      console.log(`  Email: ${user.email || 'Unknown'}`);
+      console.log(`  ID:    ${user.id || 'Unknown'}`);
+      console.log('');
+      if (user.organization && typeof user.organization === 'object') {
+        const org = user.organization as Record<string, unknown>;
+        console.log('Organization:');
+        console.log(`  Name: ${org.name || 'Unknown'}`);
+        console.log(`  ID:   ${org.id || 'Unknown'}`);
+        console.log('');
+      }
+      if (Array.isArray(user.teams)) {
+        console.log('Teams:');
+        for (const team of user.teams) {
+          const t = team as Record<string, unknown>;
+          console.log(`  - ${t.name} (${t.key})`);
+        }
+      }
+      return undefined as never;
+    });
   },
 
   // Alias: done <issue-numbers...> -> status Done <issue-numbers...>
@@ -1266,6 +1333,110 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
     console.log(`  URL:      ${issue.url}`);
   },
 
+  async 'search'(query: string) {
+    if (!query) {
+      console.error('Usage: search <query>');
+      console.error('Example: search "fix login bug"');
+      process.exit(1);
+    }
+
+    console.log(`Searching for "${query}"...\n`);
+
+    const sdkSearch = async () => {
+      const client = requireClient();
+      const results = await (client as unknown as { issueSearch: (opts: { query: string; first: number }) => Promise<{ nodes: Array<{ identifier: string; title: string; state: Promise<{ name: string }> }> }> }).issueSearch({ query, first: 25 });
+
+      if (!results || results.nodes.length === 0) {
+        console.log('No results found.');
+        return;
+      }
+
+      console.log(`Found ${results.nodes.length} issue(s):\n`);
+      for (const issue of results.nodes) {
+        const state = await issue.state;
+        console.log(`  ${issue.identifier}  ${issue.title}`);
+        console.log(`    State: ${state?.name || 'Unknown'}`);
+      }
+    };
+
+    await tryLin(['search', query], sdkSearch, (data: unknown) => {
+      const issues = Array.isArray(data) ? data : [];
+      if (issues.length === 0) {
+        console.log('No results found.');
+        return;
+      }
+
+      console.log(`Found ${issues.length} issue(s):\n`);
+      for (const issue of issues) {
+        const i = issue as Record<string, unknown>;
+        console.log(`  ${i.identifier || i.id}  ${i.title}`);
+        if (i.state) console.log(`    State: ${typeof i.state === 'object' ? (i.state as Record<string, unknown>).name : i.state}`);
+      }
+      return undefined as never;
+    });
+  },
+
+  async 'list-issues'(...args: string[]) {
+    // Parse flags: --team X --state Y
+    let team: string | undefined;
+    let state: string | undefined;
+
+    for (let i = 0; i < args.length; i++) {
+      if (args[i] === '--team' && args[i + 1]) {
+        team = args[++i];
+      } else if (args[i] === '--state' && args[i + 1]) {
+        state = args[++i];
+      }
+    }
+
+    console.log('Fetching issues...\n');
+
+    const sdkListIssues = async () => {
+      const client = requireClient();
+      const filter: Record<string, unknown> = {};
+      if (team) filter.team = { key: { eq: team } };
+      if (state) filter.state = { name: { eq: state } };
+
+      const results = await client.issues({
+        first: 50,
+        ...(Object.keys(filter).length > 0 && { filter })
+      });
+
+      if (results.nodes.length === 0) {
+        console.log('No issues found.');
+        return;
+      }
+
+      console.log(`Found ${results.nodes.length} issue(s):\n`);
+      for (const issue of results.nodes) {
+        const issueState = await issue.state;
+        console.log(`  ${issue.identifier}  ${issue.title}`);
+        console.log(`    State: ${issueState?.name || 'Unknown'}  Priority: ${issue.priority || 0}`);
+      }
+    };
+
+    const linArgs = ['issues', 'list'];
+    if (team) linArgs.push('--team', team);
+    if (state) linArgs.push('--state', state);
+
+    await tryLin(linArgs, sdkListIssues, (data: unknown) => {
+      const issues = Array.isArray(data) ? data : [];
+      if (issues.length === 0) {
+        console.log('No issues found.');
+        return;
+      }
+
+      console.log(`Found ${issues.length} issue(s):\n`);
+      for (const issue of issues) {
+        const i = issue as Record<string, unknown>;
+        console.log(`  ${i.identifier || i.id}  ${i.title}`);
+        const s = typeof i.state === 'object' ? (i.state as Record<string, unknown>).name : i.state;
+        console.log(`    State: ${s || 'Unknown'}  Priority: ${i.priority || 0}`);
+      }
+      return undefined as never;
+    });
+  },
+
   async 'help'() {
     console.log(`
 Linear High-Level Operations
@@ -1339,6 +1510,14 @@ Commands:
 
   whoami
     Show current user and organization
+
+  search <query>
+    Search issues across workspace
+    Example: search "fix login bug"
+
+  list-issues [--team X] [--state Y]
+    List issues with optional filters
+    Example: list-issues --team SMI --state "In Progress"
 
   setup
     Check Linear skill setup and configuration

@@ -54,6 +54,7 @@ linear-claude-skill/
 │       ├── taxonomy*.ts  # Label taxonomy system (types, data, validation)
 │       ├── agent-selection.ts  # Agent routing based on labels
 │       ├── initiative.ts # Initiative linking
+│       ├── lin-cli.ts    # Optional lin CLI integration (tryLin, detection, typed wrappers)
 │       ├── project-template.ts # Project creation with verification
 │       └── verify.ts     # Post-creation verification
 ```
@@ -72,6 +73,11 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = { ... }
 - `taxonomy-data.ts`: Label definitions with colors, descriptions, agent mappings
 - `taxonomy-validation.ts`: Validation rules and keyword-based suggestion
 - `agent-selection.ts`: Routes issues to agents based on domain labels
+
+**lin-cli.ts** — Optional integration with the `lin` Rust CLI binary. Provides
+`isLinCliAvailable()` detection (cached) and `tryLin()` — the single abstraction
+used by command handlers for silent fast-path with SDK fallback. Includes typed
+wrappers, circuit-breaker after 3 failures, and `LINEAR_USE_LIN=0` kill switch.
 
 **project-template.ts** — Enforces the 6-step project creation workflow:
 1. Create project with description
@@ -104,6 +110,7 @@ All TypeScript entry points in `scripts/` are pre-compiled to `dist/` using esbu
 ```
 LINEAR_API_KEY              # Required - Linear API key (lin_api_...)
 LINEAR_DEFAULT_INITIATIVE_ID # Optional - Default initiative for createProjectWithDefaults()
+LINEAR_USE_LIN              # Optional - Set to 0 to disable lin CLI fast-path
 ```
 
 ### Label Taxonomy Rules
