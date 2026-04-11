@@ -1,3 +1,15 @@
+# [2.7.0](https://github.com/wrsmith108/linear-claude-skill/compare/v2.6.3...v2.7.0) (2026-04-11)
+
+
+### Bug Fixes
+
+* address code review findings for lin CLI integration ([6a45417](https://github.com/wrsmith108/linear-claude-skill/commit/6a454176c8c50a437b854da2f21f78cc3436bfc4))
+
+
+### Features
+
+* integrate lin CLI as optional fast-path for common operations ([58867ca](https://github.com/wrsmith108/linear-claude-skill/commit/58867caa0f2e8c026de84a20cfaa5036ed6d58dd))
+
 ## [2.6.3](https://github.com/wrsmith108/linear-claude-skill/compare/v2.6.2...v2.6.3) (2026-04-08)
 
 
