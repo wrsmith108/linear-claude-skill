@@ -159,6 +159,10 @@ npm run ops -- create-issue "Project" "Add rate limiting to auth endpoints" "Aut
 # Update issue status
 npm run ops -- status Done ENG-123 ENG-124
 
+# Edit issue title or description (fix typos, expand bodies)
+npm run ops -- update-issue ENG-123 description "Updated description text"
+npm run ops -- update-issue ENG-123 title "Corrected title"
+
 # Create sub-issue
 npm run ops -- create-sub-issue ENG-100 "Sub-task" "Details"
 

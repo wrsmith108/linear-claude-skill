@@ -863,6 +863,46 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
     });
   },
 
+  // Update issue fields (title, description)
+  async 'update-issue'(issueIdentifier: string, field: string, ...valueParts: string[]) {
+    if (!issueIdentifier || !field || valueParts.length === 0) {
+      console.error('Usage: update-issue <issue-id> <field> <value>');
+      console.error('Fields: title, description');
+      console.error('Example: update-issue ENG-123 description "New description text"');
+      console.error('Example: update-issue 123 title "Corrected title"  (prefix optional)');
+      process.exit(1);
+    }
+
+    if (field !== 'title' && field !== 'description') {
+      console.error(`[ERROR] Unknown field: ${field}. Supported: title, description`);
+      process.exit(1);
+    }
+
+    const value = valueParts.join(' ');
+    const issueNum = parseInt(issueIdentifier.replace(/^[A-Z]+-/i, ''), 10);
+    if (isNaN(issueNum)) {
+      console.error(`[ERROR] "${issueIdentifier}" is not a valid issue identifier`);
+      process.exit(1);
+    }
+
+    const client = requireClient();
+    const issues = await client.issues({ filter: { number: { eq: issueNum } } });
+    if (issues.nodes.length === 0) {
+      console.error(`[ERROR] Issue #${issueNum} not found`);
+      process.exit(1);
+    }
+
+    const issue = issues.nodes[0];
+    const updateInput: Record<string, string> = { [field]: value };
+
+    console.log(`Updating ${issue.identifier} - ${issue.title}...`);
+    await issue.update(updateInput);
+
+    console.log(`\n[SUCCESS] Issue updated!`);
+    console.log(`  ${issue.identifier}: ${field} updated`);
+    console.log(`  URL: ${issue.url}`);
+  },
+
   // Alias: done <issue-numbers...> -> status Done <issue-numbers...>
   async 'done'(...issueNumbers: string[]) {
     if (issueNumbers.length === 0) {
@@ -1623,6 +1663,11 @@ Commands:
     Shortcut for: status "In Progress" <issue-numbers...>
     Example: wip ENG-123
 
+  update-issue <issue-id> <field> <value>
+    Update an issue's title or description
+    Fields: title, description
+    Example: update-issue ENG-123 description "New description text"
+
   list-initiatives
     List all initiatives in the workspace
 
@@ -1677,6 +1722,7 @@ Examples:
   npx tsx linear-ops.ts status Done 123 124 125
   npx tsx linear-ops.ts done ENG-123 ENG-124
   npx tsx linear-ops.ts wip ENG-125
+  npx tsx linear-ops.ts update-issue ENG-123 description "Updated description"
   npx tsx linear-ops.ts list-initiatives
   npx tsx linear-ops.ts labels taxonomy
   npx tsx linear-ops.ts labels validate "feature,security,breaking-change"

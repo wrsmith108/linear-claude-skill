@@ -85,6 +85,40 @@ describe('smoke tests', () => {
     }
   });
 
+  it('CLI update-issue exits non-0 with no args', () => {
+    try {
+      execSync(`node ${join(DIST, 'linear-ops.js')} update-issue`, {
+        stdio: 'pipe',
+        cwd: ROOT,
+        env: { ...process.env, LINEAR_API_KEY: '' }
+      });
+      assert.fail('Expected update-issue to exit non-0 with no args');
+    } catch (err: unknown) {
+      const error = err as { status: number };
+      assert.ok(
+        error.status !== 0,
+        `Expected non-0 exit code, got ${error.status}`
+      );
+    }
+  });
+
+  it('CLI update-issue exits non-0 with unknown field', () => {
+    try {
+      execSync(`node ${join(DIST, 'linear-ops.js')} update-issue ENG-1 bogus "value"`, {
+        stdio: 'pipe',
+        cwd: ROOT,
+        env: { ...process.env, LINEAR_API_KEY: 'test_key_for_arg_validation' }
+      });
+      assert.fail('Expected update-issue to exit non-0 with unknown field');
+    } catch (err: unknown) {
+      const error = err as { status: number };
+      assert.ok(
+        error.status !== 0,
+        `Expected non-0 exit code, got ${error.status}`
+      );
+    }
+  });
+
   it('npm run ops -- help forwards args correctly', () => {
     execSync('npm run ops -- help', {
       stdio: 'pipe',
