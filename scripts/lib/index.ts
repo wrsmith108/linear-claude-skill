@@ -109,12 +109,15 @@ export {
   findInitiativeByName,
   findTeamByKey,
   findTeamByName,
+  findWorkflowStateIdByName,
+  findLabelIdsByName,
   isValidHealth,
   VALID_HEALTH_VALUES,
   type HealthStatus,
   type ProjectInfo,
   type InitiativeInfo,
-  type TeamInfo
+  type TeamInfo,
+  type LabelLookupResult
 } from './linear-utils'
 
 // Lin CLI integration (optional fast-path)
