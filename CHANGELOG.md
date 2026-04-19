@@ -1,3 +1,10 @@
+# [3.1.0](https://github.com/wrsmith108/linear-claude-skill/compare/v3.0.0...v3.1.0) (2026-04-19)
+
+
+### Features
+
+* close MCP AC gap + sync SKILL.md version on release (SMI-4324, SMI-4325) ([#20](https://github.com/wrsmith108/linear-claude-skill/issues/20)) ([2c2350c](https://github.com/wrsmith108/linear-claude-skill/commit/2c2350c95f4293c4c3c02ad06ab4e70c548381ae))
+
 # [3.0.0](https://github.com/wrsmith108/linear-claude-skill/compare/v2.7.2...v3.0.0) (2026-04-19)
 
 
