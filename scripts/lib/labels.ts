@@ -6,6 +6,7 @@
  * Integrates with the domain-based label taxonomy.
  */
 import { getLinearClient } from './linear-utils'
+import { withRetry } from './retry'
 import { buildColorMap } from './taxonomy-data'
 import { validateLabels, type ValidationResult } from './taxonomy-validation'
 
@@ -39,8 +40,12 @@ const LABEL_COLORS: Record<string, string> = {
  * Get all existing labels for a team (case-insensitive map)
  */
 export async function getLabelMap(teamId?: string): Promise<Map<string, string>> {
-  const labelsResult = await getLinearClient().issueLabels(
-    teamId ? { filter: { team: { id: { eq: teamId } } } } : undefined
+  const labelsResult = await withRetry(
+    () =>
+      getLinearClient().issueLabels(
+        teamId ? { filter: { team: { id: { eq: teamId } } } } : undefined
+      ),
+    { label: 'getLabelMap' }
   )
 
   const labelMap = new Map<string, string>()
@@ -122,11 +127,15 @@ export async function ensureLabelsExist(
     }
 
     try {
-      const result = await getLinearClient().createIssueLabel({
-        teamId,
-        name,
-        color: LABEL_COLORS[key] || '#6B7280'
-      })
+      const result = await withRetry(
+        () =>
+          getLinearClient().createIssueLabel({
+            teamId,
+            name,
+            color: LABEL_COLORS[key] || '#6B7280'
+          }),
+        { label: `createIssueLabel:${name}` }
+      )
       const label = await result.issueLabel
       if (label) {
         labelMap.set(key, label.id)
