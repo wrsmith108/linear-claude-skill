@@ -100,4 +100,21 @@ describe('smoke tests', () => {
       'dist/linear-ops.js should reference @linear/sdk as an external import'
     );
   });
+
+  it('SKILL.md frontmatter version matches package.json version', () => {
+    const skill = readFileSync(join(ROOT, 'SKILL.md'), 'utf8');
+    const fm = skill.match(/^---\n([\s\S]*?)\n---\n/);
+    assert.ok(fm, 'SKILL.md must start with YAML frontmatter');
+    const versionLine = fm[1].match(/^version:\s*(.+)$/m);
+    assert.ok(versionLine, 'SKILL.md frontmatter must contain a version: line');
+    const skillVersion = versionLine[1].trim();
+    const pkgVersion = JSON.parse(
+      readFileSync(join(ROOT, 'package.json'), 'utf8')
+    ).version;
+    assert.strictEqual(
+      skillVersion,
+      pkgVersion,
+      `SKILL.md version (${skillVersion}) must equal package.json version (${pkgVersion}). Run 'node scripts/sync-skill-version.mjs ${pkgVersion}' to fix.`
+    );
+  });
 });
