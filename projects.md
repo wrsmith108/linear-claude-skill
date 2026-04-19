@@ -390,7 +390,7 @@ Add clickable links to projects/initiatives (shows in Resources section):
 ```graphql
 mutation {
   entityExternalLinkCreate(input: {
-    url: "https://github.com/org/repo/blob/main/docs/implementation/phase-N.md",
+    url: "https://github.com/wrsmith108/linear-claude-skill/blob/main/docs/implementation/phase-N.md",
     label: "Implementation Doc",
     projectId: "<project-uuid>"
   }) { success }

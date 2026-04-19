@@ -26,3 +26,6 @@ CLAUDE.md
 
 # Claude Flow runtime state
 .claude-flow/
+
+# Skillsmith publish artifact (regenerated per `skillsmith publish`)
+.skillsmith-publish.json
