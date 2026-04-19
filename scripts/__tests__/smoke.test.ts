@@ -101,6 +101,24 @@ describe('smoke tests', () => {
     );
   });
 
+  it('CLI create-issue exits 5 (VALIDATION_ERROR) on strict AC failure', () => {
+    // Validation runs BEFORE the API call, so no LINEAR_API_KEY is needed.
+    try {
+      execSync(
+        `node ${join(DIST, 'linear-ops.js')} create-issue "X" "Y" "too short"`,
+        { stdio: 'pipe', cwd: ROOT, env: { ...process.env, LINEAR_API_KEY: '' } }
+      );
+      assert.fail('Expected create-issue to exit non-0 on invalid description');
+    } catch (err: unknown) {
+      const error = err as { status: number };
+      assert.strictEqual(
+        error.status,
+        5,
+        `Expected exit 5 (VALIDATION_ERROR), got ${error.status}`
+      );
+    }
+  });
+
   it('SKILL.md frontmatter version matches package.json version', () => {
     const skill = readFileSync(join(ROOT, 'SKILL.md'), 'utf8');
     const fm = skill.match(/^---\n([\s\S]*?)\n---\n/);
