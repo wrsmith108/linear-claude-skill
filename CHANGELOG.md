@@ -1,3 +1,20 @@
+# [3.0.0](https://github.com/wrsmith108/linear-claude-skill/compare/v2.7.2...v3.0.0) (2026-04-19)
+
+
+* feat(issues)!: require Acceptance Criteria on new issues (SMI-4324) ([fb04c0e](https://github.com/wrsmith108/linear-claude-skill/commit/fb04c0e80c4a4b558468df9b5fca0293d4521ae9))
+
+
+### BREAKING CHANGES
+
+* CLI create-issue / create-sub-issue / batch project
+creation now exit non-zero when the description fails validation.
+Scripts that previously passed short or empty descriptions must be
+updated. Set LINEAR_REQUIRE_ACCEPTANCE_CRITERIA=0 to restore prior
+behavior globally, or pass --strict=false per call.
+
+Co-Authored-By: claude-flow <ruv@ruv.net>
+Co-Authored-By: Claude <noreply@anthropic.com>
+
 ## [2.7.2](https://github.com/wrsmith108/linear-claude-skill/compare/v2.7.1...v2.7.2) (2026-04-11)
 
 
