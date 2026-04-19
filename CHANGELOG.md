@@ -1,3 +1,10 @@
+# [3.2.0](https://github.com/wrsmith108/linear-claude-skill/compare/v3.1.0...v3.2.0) (2026-04-19)
+
+
+### Features
+
+* **labels:** add retry/backoff wrapper so 429 responses don't fail the run (SMI-4346) ([#23](https://github.com/wrsmith108/linear-claude-skill/issues/23)) ([bb8c87e](https://github.com/wrsmith108/linear-claude-skill/commit/bb8c87ec9d6f955685210a898f7edfb4bada6ebb))
+
 # [3.1.0](https://github.com/wrsmith108/linear-claude-skill/compare/v3.0.0...v3.1.0) (2026-04-19)
 
 
