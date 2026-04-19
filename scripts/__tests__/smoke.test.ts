@@ -100,4 +100,39 @@ describe('smoke tests', () => {
       'dist/linear-ops.js should reference @linear/sdk as an external import'
     );
   });
+
+  it('CLI create-issue exits 5 (VALIDATION_ERROR) on strict AC failure', () => {
+    // Validation runs BEFORE the API call, so no LINEAR_API_KEY is needed.
+    try {
+      execSync(
+        `node ${join(DIST, 'linear-ops.js')} create-issue "X" "Y" "too short"`,
+        { stdio: 'pipe', cwd: ROOT, env: { ...process.env, LINEAR_API_KEY: '' } }
+      );
+      assert.fail('Expected create-issue to exit non-0 on invalid description');
+    } catch (err: unknown) {
+      const error = err as { status: number };
+      assert.strictEqual(
+        error.status,
+        5,
+        `Expected exit 5 (VALIDATION_ERROR), got ${error.status}`
+      );
+    }
+  });
+
+  it('SKILL.md frontmatter version matches package.json version', () => {
+    const skill = readFileSync(join(ROOT, 'SKILL.md'), 'utf8');
+    const fm = skill.match(/^---\n([\s\S]*?)\n---\n/);
+    assert.ok(fm, 'SKILL.md must start with YAML frontmatter');
+    const versionLine = fm[1].match(/^version:\s*(.+)$/m);
+    assert.ok(versionLine, 'SKILL.md frontmatter must contain a version: line');
+    const skillVersion = versionLine[1].trim();
+    const pkgVersion = JSON.parse(
+      readFileSync(join(ROOT, 'package.json'), 'utf8')
+    ).version;
+    assert.strictEqual(
+      skillVersion,
+      pkgVersion,
+      `SKILL.md version (${skillVersion}) must equal package.json version (${pkgVersion}). Run 'node scripts/sync-skill-version.mjs ${pkgVersion}' to fix.`
+    );
+  });
 });

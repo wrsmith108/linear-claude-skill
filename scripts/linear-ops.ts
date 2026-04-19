@@ -132,7 +132,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
       const output = formatDescriptionValidationResult(descResult);
       if (!descResult.valid && strict) {
         console.error(output);
-        process.exit(1);
+        process.exit(EXIT_CODES.VALIDATION_ERROR);
       } else if (!descResult.valid) {
         console.warn('[WARN] Description validation downgraded (strict mode off):');
         console.warn(output);
@@ -1007,7 +1007,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
       const output = formatDescriptionValidationResult(descResult);
       if (!descResult.valid && strict) {
         console.error(output);
-        process.exit(1);
+        process.exit(EXIT_CODES.VALIDATION_ERROR);
       } else if (!descResult.valid) {
         console.warn('[WARN] Description validation downgraded (strict mode off):');
         console.warn(output);
