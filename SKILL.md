@@ -177,23 +177,34 @@ See [Project Management Commands](#project-management-commands) for full referen
 
 **When creating a Linear issue, always complete these three steps — even if the user doesn't mention them.**
 
-1. **Detailed description with Acceptance Criteria.** Every issue description MUST include an `## Acceptance Criteria` section with at least 2 concrete, testable checklist items. See [docs/issue-template.md](docs/issue-template.md) for the canonical template. The CLI `create-issue` / `create-sub-issue` will reject descriptions missing this structure; for MCP `save_issue` callers, validate the draft first with `npm run ops -- validate-description --stdin` (see below). If the user provides only a title, draft the description yourself using the template below.
+1. **Detailed description with Acceptance Criteria.** Every issue description MUST include an `## Acceptance Criteria` section with at least 2 concrete, testable checklist items. See [docs/issue-template.md](docs/issue-template.md) for the canonical template plus a populated full example. The CLI `create-issue` / `create-sub-issue` will reject descriptions missing this structure; for MCP `save_issue` callers, validate the draft first with `npm run ops -- validate-description --stdin` (see below). If the user provides only a title, draft the description yourself using the template below.
+
+   **Depth — default to the full six-section template.** Unless the user's phrasing clearly signals brevity (*"quick issue"*, *"one-liner"*, *"just the AC"*, *"brief"*, *"terse"*, *"minimum"*, *"short"*), structure the body as **Context → Problem → Proposal → Acceptance Criteria → Verification → Out of scope**. The 120-char / 2-item floor is what the validator *rejects*, not what reviewers *want*. If the user gives you only a title, draft a verbose body from the full template — ask follow-up questions rather than shipping the floor. For trivial changes (typo fix, one-line config tweak), collapsing `Problem` into `Context` and dropping `Verification` is fine when the AC is self-evidently testable — collapse deliberately, not by default.
 
    ```markdown
    ## Context
    **Title:** <title>
 
-   <What is changing and why. 1-3 sentences.>
+   <What is changing and why. 2-4 sentences. Link prior issues, docs, or incidents that motivate this.>
+
+   ## Problem
+   <What specifically is broken, missing, or insufficient today. Name the file, flow, or behavior.>
+
+   ## Proposal
+   <What you intend to do about it. High-level approach, not implementation line-by-line.>
 
    ## Acceptance Criteria
    - [ ] <Concrete, testable outcome>
    - [ ] <Concrete, testable outcome>
 
+   ## Verification
+   <How the AC will actually be checked. Manual steps, test command, or review instruction.>
+
    ## Out of Scope
-   - <Optional: what this issue does NOT cover>
+   - <What this issue does NOT cover — redirect to the follow-up or explain why it's deferred>
    ```
 
-   Print the template on demand with: `npm run ops -- create-issue --template`.
+   Print the template on demand with: `npm run ops -- create-issue --template`. See [docs/issue-template.md](docs/issue-template.md) for a fully populated example.
 
 2. **Labels.** Apply from the [label taxonomy](docs/labels.md):
    - Exactly ONE type label (`feature`, `bug`, `refactor`, `chore`, `spike`)
@@ -213,6 +224,8 @@ See [Project Management Commands](#project-management-commands) for full referen
 > ```
 >
 > The CLI already gates this for `create-issue` / `create-sub-issue`. MCP has no server-side gate — this pre-flight + the retroactive `npm run lint-issues` audit are the only enforcement for the MCP path. For longer drafts in a file, use `--file <path>` instead of `--stdin`.
+>
+> **Depth ≠ validation.** Validation passing (exit 0) only means the 120-char / 2-AC floor is met. Structure the body as the full six-section template (Context → Problem → Proposal → AC → Verification → Out of Scope) unless the user explicitly asked for brevity — see bullet #1 above.
 >
 > **Enforcement model.** CLI + SDK paths are hard-gated; the MCP path is instruction + audit. A PreToolUse hook that intercepts `save_issue` was considered and rejected: it only fires when Claude Code is the runtime, install is per-user, and the payload shape is harness-version-dependent. Run `npm run lint-issues -- --since 24h` locally or in CI to catch instruction-layer drift retroactively.
 

@@ -138,9 +138,11 @@ describe('buildIssueTemplate', () => {
   it('returns a string containing required sections', () => {
     const t = buildIssueTemplate();
     assert.ok(t.includes('## Context'));
+    assert.ok(t.includes('## Problem'));
+    assert.ok(t.includes('## Proposal'));
     assert.ok(t.includes('## Acceptance Criteria'));
+    assert.ok(t.includes('## Verification'));
     assert.ok(t.includes('## Out of Scope'));
-    assert.ok(t.includes('## Notes'));
   });
 
   it('does NOT include an H1', () => {
