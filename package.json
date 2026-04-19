@@ -43,6 +43,7 @@
     "ops": "sh scripts/run.sh linear-ops",
     "query": "sh scripts/run.sh query",
     "sync": "sh scripts/run.sh sync",
+    "lint-issues": "sh scripts/run.sh lint-issues",
     "test-connection": "sh scripts/run.sh query \"query { viewer { name } }\"",
     "upload-image": "sh scripts/run.sh upload-image",
     "extract-image": "sh scripts/run.sh extract-image",
@@ -68,6 +69,7 @@
   "devDependencies": {
     "@eslint/js": "^9.0.0",
     "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/exec": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
     "@types/node": "^25.0.10",
     "esbuild": "^0.27.4",
