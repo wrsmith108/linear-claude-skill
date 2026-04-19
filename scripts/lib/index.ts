@@ -142,3 +142,14 @@ export {
   type IssueConfig,
   type CreateResult
 } from './project-template'
+
+// Retry helper
+export {
+  withRetry,
+  extractStatusCode,
+  extractRetryAfterMs,
+  isRetryableStatus,
+  isRetryDisabled,
+  computeBackoffMs,
+  type RetryOptions
+} from './retry'
