@@ -169,7 +169,23 @@ See [Project Management Commands](#project-management-commands) for full referen
 
 **When creating a Linear issue, always complete these three steps — even if the user doesn't mention them.**
 
-1. **Detailed description.** Include what the change is, why it's needed, and acceptance criteria or scope. If the user provides only a title, infer and write the description yourself.
+1. **Detailed description with Acceptance Criteria.** Every issue description MUST include an `## Acceptance Criteria` section with at least 2 concrete, testable checklist items. See [docs/issue-template.md](docs/issue-template.md) for the canonical template. The CLI `create-issue` / `create-sub-issue` will reject descriptions missing this structure; MCP `save_issue` callers must match it too. If the user provides only a title, draft the description yourself using the template below.
+
+   ```markdown
+   ## Context
+   **Title:** <title>
+
+   <What is changing and why. 1-3 sentences.>
+
+   ## Acceptance Criteria
+   - [ ] <Concrete, testable outcome>
+   - [ ] <Concrete, testable outcome>
+
+   ## Out of Scope
+   - <Optional: what this issue does NOT cover>
+   ```
+
+   Print the template on demand with: `npm run ops -- create-issue --template`.
 
 2. **Labels.** Apply from the [label taxonomy](docs/labels.md):
    - Exactly ONE type label (`feature`, `bug`, `refactor`, `chore`, `spike`)
@@ -180,7 +196,7 @@ See [Project Management Commands](#project-management-commands) for full referen
 
 **When updating** an existing issue, preserve existing labels and project — only add missing labels or correct misassigned ones.
 
-> **MCP tools too.** If using `save_issue` or other MCP tools instead of the CLI, these rules still apply. Populate the description, labels, and project fields in the API call.
+> **MCP tools too.** If using `save_issue` or other MCP tools instead of the CLI, use this exact template — the CLI will reject issues without it, and MCP callers must match. The instruction layer is the only gate for MCP paths, so do not skip Acceptance Criteria when calling the API directly.
 
 ---
 
@@ -204,11 +220,31 @@ See [Project Management Commands](#project-management-commands) for full referen
    npm run ops -- project-status "Phase X: Feature Name" planned
    ```
 
-3. **Create issues directly in the project**:
+3. **Create issues directly in the project** (use `--template` to print the canonical template first, or pass a multi-line description via heredoc):
    ```bash
-   npm run ops -- create-issue "Phase X: Feature Name" "Parent task" "Implement the core feature with integration tests and documentation. Acceptance: all API endpoints return correct responses, test coverage >80%." --labels feature,backend
-   npm run ops -- create-sub-issue ENG-XXX "Sub-task 1" "Set up database schema and migrations for the new feature tables."
-   npm run ops -- create-sub-issue ENG-XXX "Sub-task 2" "Add API endpoint handlers with input validation and error responses."
+   # Print the template to seed your description
+   npm run ops -- create-issue --template
+
+   # Create the issue with a template-shaped description
+   npm run ops -- create-issue "Phase X: Feature Name" "Parent task" "$(cat <<'EOF'
+   ## Context
+   Implement the core feature with integration tests and documentation.
+
+   ## Acceptance Criteria
+   - [ ] All API endpoints return correct responses
+   - [ ] Test coverage >80% on new modules
+   EOF
+   )" --labels feature,backend
+
+   npm run ops -- create-sub-issue ENG-XXX "Sub-task 1" "$(cat <<'EOF'
+   ## Context
+   Set up database schema and migrations for the new feature tables.
+
+   ## Acceptance Criteria
+   - [ ] Migration runs cleanly on a fresh database
+   - [ ] Rollback migration restores prior schema
+   EOF
+   )"
    ```
 
 4. **Update project state when work begins**:

@@ -30,6 +30,13 @@ import {
   findProjectByName,
   findTeamByKey,
 } from './lib/linear-utils.js';
+import {
+  validateIssueDescription,
+  buildIssueTemplate,
+  formatDescriptionValidationResult,
+  formatWarningsOnly,
+  isStrictMode,
+} from './lib/issue-description.js';
 
 interface Args {
   team: string;
@@ -181,6 +188,21 @@ async function lookupLabelIds(
 }
 
 async function main() {
+  const rawArgs = process.argv.slice(2);
+
+  // --template short-circuit: print template and exit without auth/API calls
+  if (rawArgs.includes('--template')) {
+    const titleIdx = rawArgs.indexOf('--title');
+    const title = titleIdx !== -1 ? rawArgs[titleIdx + 1] : undefined;
+    process.stdout.write(buildIssueTemplate(title));
+    return;
+  }
+
+  // Extract --strict flag (consumed here, not passed to parseArgs)
+  let strictFlag: boolean | undefined;
+  if (rawArgs.includes('--strict=false')) strictFlag = false;
+  if (rawArgs.includes('--strict=true')) strictFlag = true;
+
   let client: LinearClient;
   try {
     client = getLinearClient();
@@ -190,6 +212,22 @@ async function main() {
   }
 
   const args = parseArgs();
+
+  // Validate description BEFORE any API work
+  const descResult = validateIssueDescription(args.description ?? '');
+  if (!descResult.valid || descResult.warnings.length > 0) {
+    const strict = isStrictMode(strictFlag);
+    const output = formatDescriptionValidationResult(descResult);
+    if (!descResult.valid && strict) {
+      console.error(output);
+      process.exit(EXIT_CODES.VALIDATION_ERROR);
+    } else if (!descResult.valid) {
+      console.warn('[WARN] Description validation downgraded (strict mode off):');
+      console.warn(output);
+    } else if (descResult.warnings.length > 0) {
+      console.warn(formatWarningsOnly(descResult));
+    }
+  }
 
   // Step 1: Look up team
   console.log(`Looking up team "${args.team}"...`);

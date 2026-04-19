@@ -43,7 +43,12 @@ import {
   getLinearClient,
   tryLin,
   isLinCliAvailable,
-  linUpdateIssueState
+  linUpdateIssueState,
+  validateIssueDescription,
+  buildIssueTemplate,
+  formatDescriptionValidationResult,
+  formatWarningsOnly,
+  isStrictMode
 } from './lib';
 
 // Lazy API key validation and client creation
@@ -84,16 +89,25 @@ function requireClient(): LinearClient {
 const commands: Record<string, (...args: string[]) => Promise<void>> = {
 
   async 'create-issue'(projectName: string, title: string, description?: string, ...flags: string[]) {
+    // --template short-circuit: no project/title required, just print template and exit
+    const allArgs = [projectName, title, description, ...flags].filter((a): a is string => typeof a === 'string');
+    if (allArgs.includes('--template')) {
+      process.stdout.write(buildIssueTemplate(title && title !== '--template' ? title : undefined));
+      return;
+    }
+
     if (!projectName || !title) {
-      console.error('Usage: create-issue <project-name> <title> [description] [--priority 1-4] [--labels label1,label2]');
-      console.error('Example: create-issue "My Project" "Fix login bug" "Users cannot log in"');
+      console.error('Usage: create-issue <project-name> <title> [description] [--priority 1-4] [--labels label1,label2] [--strict=false]');
+      console.error('Example: create-issue "My Project" "Fix login bug" "Users cannot log in..."');
       console.error('\nPriority: 1=urgent, 2=high, 3=medium, 4=low (default: 3)');
+      console.error('Print template: create-issue --template');
       process.exit(1);
     }
 
     // Parse flags
     let priority = 3;
     let labelNames: string[] = [];
+    let strictFlag: boolean | undefined;
 
     for (let i = 0; i < flags.length; i++) {
       if (flags[i] === '--priority' && flags[i + 1]) {
@@ -102,6 +116,27 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
       } else if (flags[i] === '--labels' && flags[i + 1]) {
         labelNames = flags[i + 1].split(',').map(l => l.trim());
         i++;
+      } else if (flags[i] === '--strict=false') {
+        strictFlag = false;
+      } else if (flags[i] === '--strict=true') {
+        strictFlag = true;
+      }
+    }
+
+    // Validate description BEFORE any API work (runs before tryLin too, so the
+    // lin-CLI fast-path is also gated).
+    const descResult = validateIssueDescription(description ?? '');
+    if (!descResult.valid || descResult.warnings.length > 0) {
+      const strict = isStrictMode(strictFlag);
+      const output = formatDescriptionValidationResult(descResult);
+      if (!descResult.valid && strict) {
+        console.error(output);
+        process.exit(1);
+      } else if (!descResult.valid) {
+        console.warn('[WARN] Description validation downgraded (strict mode off):');
+        console.warn(output);
+      } else if (descResult.warnings.length > 0) {
+        console.warn(formatWarningsOnly(descResult));
       }
     }
 
@@ -923,11 +958,18 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
 
   // Create a new issue as a sub-issue (child) of another issue
   async 'create-sub-issue'(parentIssue: string, title: string, description?: string, ...flags: string[]) {
+    // --template short-circuit
+    const allArgs = [parentIssue, title, description, ...flags].filter((a): a is string => typeof a === 'string');
+    if (allArgs.includes('--template')) {
+      process.stdout.write(buildIssueTemplate(title && title !== '--template' ? title : undefined));
+      return;
+    }
+
     if (!parentIssue || !title) {
-      console.error('Usage: create-sub-issue <parent-issue> <title> [description] [--priority 1-4] [--labels label1,label2]');
-      console.error('Example: create-sub-issue ENG-100 "Implement feature" "Detailed description"');
+      console.error('Usage: create-sub-issue <parent-issue> <title> [description] [--priority 1-4] [--labels label1,label2] [--strict=false]');
+      console.error('Example: create-sub-issue ENG-100 "Implement feature" "Detailed description..."');
       console.error('Example: create-sub-issue 100 "Add tests" --priority 2');
-      console.error('\nCreates a new issue as a child of the specified parent issue.');
+      console.error('\nPrint template: create-sub-issue --template');
       process.exit(1);
     }
 
@@ -941,6 +983,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
     // Parse flags
     let priority = 3;
     let labelNames: string[] = [];
+    let strictFlag: boolean | undefined;
 
     for (let i = 0; i < flags.length; i++) {
       if (flags[i] === '--priority' && flags[i + 1]) {
@@ -949,6 +992,26 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
       } else if (flags[i] === '--labels' && flags[i + 1]) {
         labelNames = flags[i + 1].split(',').map(l => l.trim());
         i++;
+      } else if (flags[i] === '--strict=false') {
+        strictFlag = false;
+      } else if (flags[i] === '--strict=true') {
+        strictFlag = true;
+      }
+    }
+
+    // Validate description BEFORE any API work (before tryLin too).
+    const descResult = validateIssueDescription(description ?? '');
+    if (!descResult.valid || descResult.warnings.length > 0) {
+      const strict = isStrictMode(strictFlag);
+      const output = formatDescriptionValidationResult(descResult);
+      if (!descResult.valid && strict) {
+        console.error(output);
+        process.exit(1);
+      } else if (!descResult.valid) {
+        console.warn('[WARN] Description validation downgraded (strict mode off):');
+        console.warn(output);
+      } else if (descResult.warnings.length > 0) {
+        console.warn(formatWarningsOnly(descResult));
       }
     }
 

@@ -47,7 +47,7 @@
     "upload-image": "sh scripts/run.sh upload-image",
     "extract-image": "sh scripts/run.sh extract-image",
     "pretest": "npm run build",
-    "test": "node --test dist/__tests__/smoke.test.js",
+    "test": "node --test dist/__tests__/*.test.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint scripts/",
     "lint:fix": "eslint scripts/ --fix"

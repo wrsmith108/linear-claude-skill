@@ -13,6 +13,7 @@ import { getLinearClient } from './linear-utils'
 import { linkProjectToInitiative, DEFAULT_INITIATIVE_ID } from './initiative'
 import { ensureLabelsExist, extractUniqueLabels } from './labels'
 import { verifyProjectCreation } from './verify'
+import { validateIssueDescription, isStrictMode, formatDescriptionValidationResult } from './issue-description'
 
 export interface IssueConfig {
   title: string
@@ -93,6 +94,39 @@ export async function createProject(
   }
 
   console.log(`\n=== Creating Project: ${config.name} ===\n`)
+
+  // Step 0: Validate ALL issue descriptions BEFORE any API call. This is a pure
+  // check, so we run it before creating the project, linking to initiative, or
+  // creating labels — otherwise a validation failure leaves an empty project and
+  // orphaned labels behind.
+  if (isStrictMode()) {
+    console.log('Step 0: Validating issue descriptions...')
+    const descErrors: string[] = []
+    for (const [idx, issueConfig] of config.issues.entries()) {
+      const descResult = validateIssueDescription(issueConfig.description)
+      if (!descResult.valid) {
+        descErrors.push(
+          `  Issue #${idx + 1} "${issueConfig.title}":\n` +
+          formatDescriptionValidationResult(descResult)
+            .split('\n')
+            .map(line => '    ' + line)
+            .join('\n')
+        )
+      }
+    }
+    if (descErrors.length > 0) {
+      console.error(
+        `  ✗ ${descErrors.length} of ${config.issues.length} issue(s) failed description validation. ` +
+        `Aborting before any resources are created.`
+      )
+      for (const err of descErrors) console.error(err)
+      result.verification.issues.push(
+        `${descErrors.length} issue description(s) failed validation — no project, labels, or issues created.`
+      )
+      return result
+    }
+    console.log(`  ✓ All ${config.issues.length} descriptions valid`)
+  }
 
   // Step 1: Create or find project
   console.log('Step 1: Creating project...')

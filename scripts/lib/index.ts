@@ -71,6 +71,18 @@ export {
   formatSuggestions
 } from './taxonomy-validation'
 
+// Issue description validation
+export {
+  validateIssueDescription,
+  buildIssueTemplate,
+  formatDescriptionValidationResult,
+  formatWarningsOnly,
+  isStrictMode,
+  MIN_BODY_CHARS,
+  MIN_AC_ITEMS,
+  type DescriptionValidationResult
+} from './issue-description'
+
 export {
   selectAgentsForIssue,
   getLabelsForAgent,
