@@ -177,7 +177,7 @@ See [Project Management Commands](#project-management-commands) for full referen
 
 **When creating a Linear issue, always complete these three steps — even if the user doesn't mention them.**
 
-1. **Detailed description with Acceptance Criteria.** Every issue description MUST include an `## Acceptance Criteria` section with at least 2 concrete, testable checklist items. See [docs/issue-template.md](docs/issue-template.md) for the canonical template. The CLI `create-issue` / `create-sub-issue` will reject descriptions missing this structure; MCP `save_issue` callers must match it too. If the user provides only a title, draft the description yourself using the template below.
+1. **Detailed description with Acceptance Criteria.** Every issue description MUST include an `## Acceptance Criteria` section with at least 2 concrete, testable checklist items. See [docs/issue-template.md](docs/issue-template.md) for the canonical template. The CLI `create-issue` / `create-sub-issue` will reject descriptions missing this structure; for MCP `save_issue` callers, validate the draft first with `npm run ops -- validate-description --stdin` (see below). If the user provides only a title, draft the description yourself using the template below.
 
    ```markdown
    ## Context
@@ -204,7 +204,17 @@ See [Project Management Commands](#project-management-commands) for full referen
 
 **When updating** an existing issue, preserve existing labels and project — only add missing labels or correct misassigned ones.
 
-> **MCP tools too.** If using `save_issue` or other MCP tools instead of the CLI, use this exact template — the CLI will reject issues without it, and MCP callers must match. The instruction layer is the only gate for MCP paths, so do not skip Acceptance Criteria when calling the API directly.
+> **MCP tools.** Before calling `mcp__linear__save_issue` (or any MCP issue-create tool), pipe the draft description through `validate-description --stdin` and only call `save_issue` if it exits 0:
+>
+> ```bash
+> echo "$DRAFT_BODY" | npm run ops -- validate-description --stdin
+> # exit 0 → safe to call save_issue
+> # exit 5 → fix the description; re-pipe; try again
+> ```
+>
+> The CLI already gates this for `create-issue` / `create-sub-issue`. MCP has no server-side gate — this pre-flight + the retroactive `npm run lint-issues` audit are the only enforcement for the MCP path. For longer drafts in a file, use `--file <path>` instead of `--stdin`.
+>
+> **Enforcement model.** CLI + SDK paths are hard-gated; the MCP path is instruction + audit. A PreToolUse hook that intercepts `save_issue` was considered and rejected: it only fires when Claude Code is the runtime, install is per-user, and the payload shape is harness-version-dependent. Run `npm run lint-issues -- --since 24h` locally or in CI to catch instruction-layer drift retroactively.
 
 ---
 

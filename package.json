@@ -43,6 +43,7 @@
     "ops": "sh scripts/run.sh linear-ops",
     "query": "sh scripts/run.sh query",
     "sync": "sh scripts/run.sh sync",
+    "lint-issues": "sh scripts/run.sh lint-issues",
     "test-connection": "sh scripts/run.sh query \"query { viewer { name } }\"",
     "upload-image": "sh scripts/run.sh upload-image",
     "extract-image": "sh scripts/run.sh extract-image",

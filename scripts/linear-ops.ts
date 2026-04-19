@@ -30,6 +30,7 @@
 declare const __BUNDLED__: boolean | undefined;
 
 import { LinearClient, ProjectUpdateHealthType, InitiativeUpdateHealthType } from '@linear/sdk';
+import { EXIT_CODES } from './lib/exit-codes.js';
 import {
   getAllLabels,
   getLabelsByCategory,
@@ -1134,6 +1135,78 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
     }
   },
 
+  // ==================== DESCRIPTION VALIDATION ====================
+
+  // Pre-flight validator for MCP save_issue callers (and anyone else).
+  // Runs without LINEAR_API_KEY — pure-logic reuse of validateIssueDescription.
+  async 'validate-description'(...args: string[]) {
+    let body: string | undefined;
+    let filePath: string | undefined;
+    let readStdin = false;
+    let strictFlag: boolean | undefined;
+
+    for (let i = 0; i < args.length; i++) {
+      const a = args[i];
+      if (a === '--file' && args[i + 1]) {
+        filePath = args[i + 1];
+        i++;
+      } else if (a === '--stdin') {
+        readStdin = true;
+      } else if (a === '--strict=false') {
+        strictFlag = false;
+      } else if (a === '--strict=true') {
+        strictFlag = true;
+      } else if (!a.startsWith('--') && body === undefined) {
+        body = a;
+      }
+    }
+
+    if (readStdin) {
+      const chunks: Buffer[] = [];
+      for await (const chunk of process.stdin) {
+        chunks.push(chunk as Buffer);
+      }
+      body = Buffer.concat(chunks).toString('utf8');
+    } else if (filePath !== undefined) {
+      const { readFileSync } = await import('node:fs');
+      try {
+        body = readFileSync(filePath, 'utf8');
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error(`[ERROR] Cannot read file "${filePath}": ${msg}`);
+        process.exit(EXIT_CODES.INVALID_ARGUMENTS);
+      }
+    }
+
+    if (body === undefined) {
+      console.error('Usage: validate-description <body>');
+      console.error('       validate-description --file <path>');
+      console.error('       validate-description --stdin');
+      console.error('');
+      console.error('Validate an issue description against the Acceptance Criteria contract.');
+      console.error('Exit 0 = valid, 5 = invalid + strict, 2 = bad args.');
+      console.error('Use --strict=false to downgrade failures to warnings (exit 0).');
+      process.exit(EXIT_CODES.INVALID_ARGUMENTS);
+    }
+
+    const result = validateIssueDescription(body);
+    const strict = isStrictMode(strictFlag);
+
+    if (!result.valid && strict) {
+      console.error(formatDescriptionValidationResult(result));
+      process.exit(EXIT_CODES.VALIDATION_ERROR);
+    } else if (!result.valid) {
+      console.warn('[WARN] Description validation downgraded (strict mode off):');
+      console.warn(formatDescriptionValidationResult(result));
+      // Exit 0 — caller asked to downgrade.
+      return;
+    } else if (result.warnings.length > 0) {
+      console.warn(formatWarningsOnly(result));
+    }
+
+    console.log('✓ Issue description is valid.');
+  },
+
   // ==================== LABEL TAXONOMY COMMANDS ====================
 
   async 'labels'(subcommand: string, ...args: string[]) {
@@ -1578,6 +1651,16 @@ Commands:
     - labels agents <labels>    Show agent recommendations
     - labels set <issue> <labels> [--replace]  Set labels on existing issue
 
+  validate-description <body>
+  validate-description --file <path>
+  validate-description --stdin
+    Validate an issue description against the Acceptance Criteria contract
+    (no API calls, no LINEAR_API_KEY required). Pre-flight gate for MCP
+    save_issue callers.
+    Exit 0 = valid, 5 = invalid + strict, 2 = bad args.
+    Use --strict=false to downgrade failures to warnings (exit 0).
+    Example: echo "$DRAFT" | npm run ops -- validate-description --stdin
+
   help
     Show this help message
 
@@ -1601,6 +1684,8 @@ Examples:
   npx tsx linear-ops.ts labels agents "security,performance"
   npx tsx linear-ops.ts labels set SMI-1770 mcp,DX,feature
   npx tsx linear-ops.ts labels set ENG-123 bug,security --replace
+  echo "$DRAFT_BODY" | npx tsx linear-ops.ts validate-description --stdin
+  npx tsx linear-ops.ts validate-description --file /tmp/draft.md
 `);
   }
 };
