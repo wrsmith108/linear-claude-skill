@@ -162,6 +162,8 @@ npm run ops -- status Done ENG-123 ENG-124
 # Edit issue title or description (fix typos, expand bodies)
 npm run ops -- update-issue ENG-123 description --file /tmp/description.md --force
 npm run ops -- update-issue ENG-123 title "Corrected title" --force
+echo "New body from pipeline" | npm run ops -- update-issue ENG-123 description --stdin --force
+npm run ops -- update-issue ENG-123 description "Short inline update" --strict=false
 
 # Create sub-issue
 npm run ops -- create-sub-issue ENG-100 "Sub-task" "Details"
