@@ -18,6 +18,7 @@
  *   create-initiative-update <init> <body>   Create an initiative update
  *   add-link <project|initiative> <url> <label>  Add external link to project or initiative
  *   status <state> <issue-numbers...>        Update issue status (Done, In Progress, etc.)
+ *   update-issue <issue-id> <field> <value>  Update issue title or description
  *   list-initiatives                         List all initiatives
  *   list-projects [initiative]               List projects (optionally filter by initiative)
  *   setup                                    Check setup and configuration
@@ -29,7 +30,12 @@
 // Defined at build time by esbuild (see scripts/build.mjs)
 declare const __BUNDLED__: boolean | undefined;
 
-import { LinearClient, ProjectUpdateHealthType, InitiativeUpdateHealthType } from '@linear/sdk';
+import {
+  LinearClient,
+  ProjectUpdateHealthType,
+  InitiativeUpdateHealthType,
+  type Issue
+} from '@linear/sdk';
 import { EXIT_CODES } from './lib/exit-codes.js';
 import {
   getAllLabels,
@@ -83,6 +89,178 @@ function requireClient(): LinearClient {
     console.error('\nOr run setup to check all requirements:');
     console.error('  npx tsx setup.ts\n');
     process.exit(1);
+  }
+}
+
+type UpdateIssueField = 'title' | 'description';
+
+interface ParsedUpdateIssueValue {
+  value: string;
+  force: boolean;
+  strictFlag?: boolean;
+}
+
+const ISSUE_IDENTIFIER_RE = /^([A-Z][A-Z0-9]*)-(\d+)$/i;
+const ISSUE_NUMBER_RE = /^\d+$/;
+
+function usageUpdateIssue(): void {
+  console.error('Usage: update-issue <issue-id> <field> <value> [--force] [--strict=false]');
+  console.error('       update-issue <issue-id> description --file <path> --force');
+  console.error('       update-issue <issue-id> description --stdin --force');
+  console.error('Fields: title, description');
+  console.error('Example: update-issue ENG-123 description "New description text" --force');
+  console.error('Example: update-issue ENG-123 title "Corrected title" --force');
+}
+
+function previewText(value: string | null | undefined, max = 500): string {
+  const text = value?.trim() || '(empty)';
+  return text.length <= max ? text : `${text.slice(0, max)}...`;
+}
+
+async function readStdinUtf8(): Promise<string> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of process.stdin) {
+    chunks.push(chunk as Buffer);
+  }
+  return Buffer.concat(chunks).toString('utf8');
+}
+
+async function parseUpdateIssueValue(
+  field: UpdateIssueField,
+  valueParts: string[]
+): Promise<ParsedUpdateIssueValue> {
+  let force = false;
+  let strictFlag: boolean | undefined;
+  let filePath: string | undefined;
+  let readStdin = false;
+  const valueTokens: string[] = [];
+
+  for (let i = 0; i < valueParts.length; i++) {
+    const part = valueParts[i];
+    if (part === '--force') {
+      force = true;
+    } else if (part === '--strict=false') {
+      strictFlag = false;
+    } else if (part === '--strict=true') {
+      strictFlag = true;
+    } else if (part === '--file') {
+      if (!valueParts[i + 1]) {
+        console.error('[ERROR] --file requires a path');
+        process.exit(EXIT_CODES.INVALID_ARGUMENTS);
+      }
+      filePath = valueParts[i + 1];
+      i++;
+    } else if (part === '--stdin') {
+      readStdin = true;
+    } else if (part.startsWith('--')) {
+      console.error(`[ERROR] Unknown flag: ${part}`);
+      process.exit(EXIT_CODES.INVALID_ARGUMENTS);
+    } else {
+      valueTokens.push(part);
+    }
+  }
+
+  if ((filePath || readStdin) && field !== 'description') {
+    console.error('[ERROR] --file and --stdin are only supported for description updates');
+    process.exit(EXIT_CODES.INVALID_ARGUMENTS);
+  }
+  if (filePath && readStdin) {
+    console.error('[ERROR] Use either --file or --stdin, not both');
+    process.exit(EXIT_CODES.INVALID_ARGUMENTS);
+  }
+  if ((filePath || readStdin) && valueTokens.length > 0) {
+    console.error('[ERROR] Provide the description either positionally, with --file, or with --stdin');
+    process.exit(EXIT_CODES.INVALID_ARGUMENTS);
+  }
+
+  let value: string;
+  if (filePath) {
+    const { readFileSync } = await import('node:fs');
+    try {
+      value = readFileSync(filePath, 'utf8');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`[ERROR] Cannot read file "${filePath}": ${msg}`);
+      process.exit(EXIT_CODES.INVALID_ARGUMENTS);
+    }
+  } else if (readStdin) {
+    value = await readStdinUtf8();
+  } else {
+    value = valueTokens.join(' ');
+  }
+
+  if (value.length === 0) {
+    console.error('[ERROR] Update value is required');
+    process.exit(EXIT_CODES.INVALID_ARGUMENTS);
+  }
+
+  return { value, force, strictFlag };
+}
+
+async function resolveIssueForUpdate(
+  client: LinearClient,
+  issueIdentifier: string
+): Promise<Issue> {
+  const trimmed = issueIdentifier.trim();
+  const fullIdentifier = trimmed.match(ISSUE_IDENTIFIER_RE);
+
+  if (fullIdentifier) {
+    const normalized = `${fullIdentifier[1].toUpperCase()}-${parseInt(fullIdentifier[2], 10)}`;
+    try {
+      return await client.issue(normalized);
+    } catch {
+      console.error(`[ERROR] Issue ${normalized} not found`);
+      process.exit(EXIT_CODES.RESOURCE_NOT_FOUND);
+    }
+  }
+
+  if (!ISSUE_NUMBER_RE.test(trimmed)) {
+    console.error(`[ERROR] "${issueIdentifier}" is not a valid issue identifier`);
+    console.error('Use a full identifier like ENG-123, or a bare number like 123 in single-team workspaces.');
+    process.exit(EXIT_CODES.INVALID_ARGUMENTS);
+  }
+
+  const issueNum = parseInt(trimmed, 10);
+  const issues = await client.issues({ first: 25, filter: { number: { eq: issueNum } } });
+
+  if (issues.nodes.length === 0) {
+    console.error(`[ERROR] Issue #${issueNum} not found`);
+    console.error('If your workspace has multiple teams, pass the full identifier, e.g. ENG-123.');
+    process.exit(EXIT_CODES.RESOURCE_NOT_FOUND);
+  }
+
+  if (issues.nodes.length > 1) {
+    const candidates = issues.nodes.map(issue => issue.identifier).join(', ');
+    console.error(`[ERROR] Multiple issues match #${issueNum}: ${candidates}`);
+    console.error('Pass the full identifier, e.g. ENG-123.');
+    process.exit(EXIT_CODES.INVALID_ARGUMENTS);
+  }
+
+  return issues.nodes[0];
+}
+
+async function confirmIssueUpdate(
+  issue: Issue,
+  field: UpdateIssueField,
+  value: string
+): Promise<void> {
+  console.log(`Current ${field} on ${issue.identifier}:`);
+  console.log(previewText(field === 'title' ? issue.title : issue.description));
+  console.log('');
+  console.log(`New ${field}:`);
+  console.log(previewText(value));
+  console.log('');
+
+  const { createInterface } = await import('node:readline/promises');
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  try {
+    const answer = await rl.question(`Replace ${field} on ${issue.identifier}? [y/N] `);
+    if (!/^y(es)?$/i.test(answer.trim())) {
+      console.error('[ERROR] Update cancelled');
+      process.exit(EXIT_CODES.PERMISSION_DENIED);
+    }
+  } finally {
+    rl.close();
   }
 }
 
@@ -863,6 +1041,62 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
     });
   },
 
+  // Update issue fields (title, description)
+  async 'update-issue'(issueIdentifier: string, field: string, ...valueParts: string[]) {
+    if (!issueIdentifier || !field || valueParts.length === 0) {
+      usageUpdateIssue();
+      process.exit(EXIT_CODES.INVALID_ARGUMENTS);
+    }
+
+    if (field !== 'title' && field !== 'description') {
+      console.error(`[ERROR] Unknown field: ${field}. Supported: title, description`);
+      process.exit(EXIT_CODES.INVALID_ARGUMENTS);
+    }
+
+    const updateField = field as UpdateIssueField;
+    const { value, force, strictFlag } = await parseUpdateIssueValue(updateField, valueParts);
+
+    if (updateField === 'description') {
+      const descResult = validateIssueDescription(value);
+      if (!descResult.valid || descResult.warnings.length > 0) {
+        const strict = isStrictMode(strictFlag);
+        const output = formatDescriptionValidationResult(descResult);
+        if (!descResult.valid && strict) {
+          console.error(output);
+          process.exit(EXIT_CODES.VALIDATION_ERROR);
+        } else if (!descResult.valid) {
+          console.warn('[WARN] Description validation downgraded (strict mode off):');
+          console.warn(output);
+        } else if (descResult.warnings.length > 0) {
+          console.warn(formatWarningsOnly(descResult));
+        }
+      }
+    }
+
+    if (!force && !process.stdin.isTTY) {
+      console.error('[ERROR] update-issue replaces existing content and requires --force in non-interactive mode');
+      console.error('Run from a terminal for an interactive confirmation, or pass --force for scripts.');
+      process.exit(EXIT_CODES.INVALID_ARGUMENTS);
+    }
+
+    const client = requireClient();
+    const issue = await resolveIssueForUpdate(client, issueIdentifier);
+    const updateInput: Parameters<Issue['update']>[0] =
+      updateField === 'title' ? { title: value } : { description: value };
+
+    if (!force) {
+      await confirmIssueUpdate(issue, updateField, value);
+    }
+
+    console.log(`Updating ${issue.identifier} - ${issue.title}...`);
+    await issue.update(updateInput);
+
+    console.log('\n[SUCCESS] Issue updated!');
+    console.log(`  ${issue.identifier}: ${field} updated`);
+    console.log(`  New ${field}: ${previewText(value, 160)}`);
+    console.log(`  URL: ${issue.url}`);
+  },
+
   // Alias: done <issue-numbers...> -> status Done <issue-numbers...>
   async 'done'(...issueNumbers: string[]) {
     if (issueNumbers.length === 0) {
@@ -1575,6 +1809,15 @@ Commands:
     Inherits team and project from parent issue
     Example: create-sub-issue ENG-100 "Add unit tests"
 
+  update-issue <issue-id> <title|description> <value> [--force] [--strict=false]
+    Update an issue title or description by full identifier, e.g. ENG-123
+    Bare numbers work only when a single issue matches that number
+    Description updates use the same Acceptance Criteria validator as create-issue
+    Examples:
+      update-issue ENG-123 title "Corrected title" --force
+      update-issue ENG-123 description --file /tmp/description.md --force
+      cat /tmp/description.md | update-issue ENG-123 description --stdin --force
+
   set-parent <parent-issue> <child-issues...>
     Set parent-child relationships between existing issues
     Useful for organizing issues into hierarchies
@@ -1677,6 +1920,8 @@ Examples:
   npx tsx linear-ops.ts status Done 123 124 125
   npx tsx linear-ops.ts done ENG-123 ENG-124
   npx tsx linear-ops.ts wip ENG-125
+  npx tsx linear-ops.ts update-issue ENG-123 title "Corrected title" --force
+  npx tsx linear-ops.ts update-issue ENG-123 description --file /tmp/description.md --force
   npx tsx linear-ops.ts list-initiatives
   npx tsx linear-ops.ts labels taxonomy
   npx tsx linear-ops.ts labels validate "feature,security,breaking-change"

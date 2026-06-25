@@ -85,6 +85,86 @@ describe('smoke tests', () => {
     }
   });
 
+  it('CLI update-issue exits non-0 with no args', () => {
+    try {
+      execSync(`node ${join(DIST, 'linear-ops.js')} update-issue`, {
+        stdio: 'pipe',
+        cwd: ROOT,
+        env: { ...process.env, LINEAR_API_KEY: '' }
+      });
+      assert.fail('Expected update-issue to exit non-0 with no args');
+    } catch (err: unknown) {
+      const error = err as { status: number };
+      assert.ok(
+        error.status !== 0,
+        `Expected non-0 exit code, got ${error.status}`
+      );
+    }
+  });
+
+  it('CLI update-issue exits non-0 with unknown field', () => {
+    try {
+      execSync(`node ${join(DIST, 'linear-ops.js')} update-issue ENG-1 bogus "value"`, {
+        stdio: 'pipe',
+        cwd: ROOT,
+        env: { ...process.env, LINEAR_API_KEY: 'test_key_for_arg_validation' }
+      });
+      assert.fail('Expected update-issue to exit non-0 with unknown field');
+    } catch (err: unknown) {
+      const error = err as { status: number };
+      assert.ok(
+        error.status !== 0,
+        `Expected non-0 exit code, got ${error.status}`
+      );
+    }
+  });
+
+  it('CLI update-issue requires --force in non-interactive mode before API work', () => {
+    try {
+      execSync(`node ${join(DIST, 'linear-ops.js')} update-issue ENG-1 title "New title"`, {
+        stdio: 'pipe',
+        cwd: ROOT,
+        env: { ...process.env, LINEAR_API_KEY: '' }
+      });
+      assert.fail('Expected update-issue to require --force in non-interactive mode');
+    } catch (err: unknown) {
+      const error = err as { status: number };
+      assert.strictEqual(
+        error.status,
+        2,
+        `Expected exit 2 (INVALID_ARGUMENTS), got ${error.status}`
+      );
+    }
+  });
+
+  it('CLI update-issue description exits 5 (VALIDATION_ERROR) on strict AC failure', () => {
+    try {
+      execSync(`node ${join(DIST, 'linear-ops.js')} update-issue ENG-1 description "too short" --force`, {
+        stdio: 'pipe',
+        cwd: ROOT,
+        env: { ...process.env, LINEAR_API_KEY: '' }
+      });
+      assert.fail('Expected update-issue description to exit non-0 on invalid description');
+    } catch (err: unknown) {
+      const error = err as { status: number };
+      assert.strictEqual(
+        error.status,
+        5,
+        `Expected exit 5 (VALIDATION_ERROR), got ${error.status}`
+      );
+    }
+  });
+
+  it('CLI help includes update-issue', () => {
+    const output = execSync(`node ${join(DIST, 'linear-ops.js')} help`, {
+      stdio: 'pipe',
+      cwd: ROOT,
+      env: { ...process.env, LINEAR_API_KEY: '' }
+    }).toString();
+    assert.ok(output.includes('update-issue <issue-id>'));
+    assert.ok(output.includes('--force'));
+  });
+
   it('npm run ops -- help forwards args correctly', () => {
     execSync('npm run ops -- help', {
       stdio: 'pipe',
