@@ -1866,11 +1866,6 @@ Commands:
     Shortcut for: status "In Progress" <issue-numbers...>
     Example: wip ENG-123
 
-  update-issue <issue-id> <field> <value>
-    Update an issue's title or description
-    Fields: title, description
-    Example: update-issue ENG-123 description "New description text"
-
   list-initiatives
     List all initiatives in the workspace
 
