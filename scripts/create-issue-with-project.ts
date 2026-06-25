@@ -29,6 +29,8 @@ import {
   getLinearClient,
   findProjectByName,
   findTeamByKey,
+  findWorkflowStateIdByName,
+  findLabelIdsByName,
 } from './lib/linear-utils.js';
 import {
   validateIssueDescription,
@@ -101,92 +103,6 @@ function parseArgs(): Args {
   return result as Args;
 }
 
-async function lookupStateByName(
-  client: LinearClient,
-  teamId: string,
-  stateName: string
-): Promise<string | null> {
-  const query = `
-    query WorkflowStates($filter: WorkflowStateFilter!) {
-      workflowStates(filter: $filter, first: 1) {
-        nodes {
-          id
-          name
-        }
-      }
-    }
-  `;
-
-  const variables = {
-    filter: {
-      team: { id: { eq: teamId } },
-      name: { eq: stateName }
-    }
-  };
-
-  try {
-    const result = await client.client.rawRequest(query, variables);
-    const data = result.data as {
-      workflowStates: {
-        nodes: Array<{ id: string; name: string }>;
-      };
-    };
-
-    return data.workflowStates.nodes[0]?.id || null;
-  } catch (error) {
-    console.error('Error looking up state:', error);
-    return null;
-  }
-}
-
-async function lookupLabelIds(
-  client: LinearClient,
-  teamId: string,
-  labelNames: string[]
-): Promise<string[]> {
-  const query = `
-    query Labels($filter: IssueLabelFilter!) {
-      issueLabels(filter: $filter, first: 50) {
-        nodes {
-          id
-          name
-        }
-      }
-    }
-  `;
-
-  const variables = {
-    filter: {
-      team: { id: { eq: teamId } },
-      name: { in: labelNames }
-    }
-  };
-
-  try {
-    const result = await client.client.rawRequest(query, variables);
-    const data = result.data as {
-      issueLabels: {
-        nodes: Array<{ id: string; name: string }>;
-      };
-    };
-
-    const foundLabels = data.issueLabels.nodes;
-    const foundNames = foundLabels.map(l => l.name.toLowerCase());
-    const missingLabels = labelNames.filter(
-      name => !foundNames.includes(name.toLowerCase())
-    );
-
-    if (missingLabels.length > 0) {
-      console.warn(`Warning: Labels not found: ${missingLabels.join(', ')}`);
-    }
-
-    return foundLabels.map(l => l.id);
-  } catch (error) {
-    console.error('Error looking up labels:', error);
-    return [];
-  }
-}
-
 async function main() {
   const rawArgs = process.argv.slice(2);
 
@@ -254,7 +170,7 @@ async function main() {
   let stateId: string | undefined;
   if (args.state) {
     console.log(`Looking up state "${args.state}"...`);
-    stateId = (await lookupStateByName(client, team.id, args.state)) || undefined;
+    stateId = (await findWorkflowStateIdByName(client, team.id, args.state)) || undefined;
     if (!stateId) {
       console.error(`Error: State "${args.state}" not found for team ${team.key}`);
       process.exit(EXIT_CODES.RESOURCE_NOT_FOUND);
@@ -266,7 +182,11 @@ async function main() {
   let labelIds: string[] | undefined;
   if (args.labels && args.labels.length > 0) {
     console.log(`Looking up labels: ${args.labels.join(', ')}...`);
-    labelIds = await lookupLabelIds(client, team.id, args.labels);
+    const labelLookup = await findLabelIdsByName(client, team.id, args.labels);
+    labelIds = labelLookup.ids;
+    if (labelLookup.missing.length > 0) {
+      console.warn(`Warning: Labels not found: ${labelLookup.missing.join(', ')}`);
+    }
     if (labelIds.length > 0) {
       console.log(`  Found ${labelIds.length} label(s)`);
     }

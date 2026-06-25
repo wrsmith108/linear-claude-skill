@@ -668,6 +668,48 @@ npm run ops -- status Done ENG-101 ENG-102 ENG-103
 npm run ops -- project-status "My Project" completed
 ```
 
+### Bulk Issue Import (`bulk-create.ts`)
+
+Create many issues in one team from a manifest directory, each with its own
+markdown description and optional media files. Media is uploaded via Linear's
+`fileUpload` API and embedded in the description (images inline, other files
+as links).
+
+Use case: importing customer feedback, retrospective action items, or custdev
+tickets where each issue needs screenshots or recordings attached.
+
+```bash
+LINEAR_API_KEY=xxx npx tsx scripts/bulk-create.ts \
+  --manifest ./feedback-2026-04 \
+  --config ./feedback-2026-04/config.json
+```
+
+Preview the manifest first without creating issues or uploading files:
+
+```bash
+npx tsx scripts/bulk-create.ts \
+  --manifest ./feedback-2026-04 \
+  --config ./feedback-2026-04/config.json \
+  --dry-run
+```
+
+**Manifest directory:**
+
+```
+feedback-2026-04/
+  tickets.json        # [{ key, title, priority?, labels?, files? }, ...]
+  config.json         # { team_key, state_name?, default_priority? }
+  desc-<key>.md       # description markdown per ticket (optional)
+  <media files>       # referenced by each ticket's files[]
+```
+
+**Config resolves by name, not UUID:**
+
+- `team_key` → looked up via `findTeamByKey` (e.g. `"ENG"`)
+- `state_name` → optional workflow state (e.g. `"Triage"`)
+- Ticket `labels` → label names resolved per team case-insensitively; unknown
+  names warn by default, or fail with `--strict`
+
 ---
 
 ## Reference

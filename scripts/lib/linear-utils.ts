@@ -6,6 +6,7 @@
  */
 
 import { LinearClient } from '@linear/sdk';
+import { withRetry } from './retry';
 
 // ============================================================================
 // Types
@@ -46,6 +47,15 @@ export interface TeamInfo {
   id: string;
   key: string;
   name: string;
+}
+
+/**
+ * Label lookup result with case-insensitive missing-label reporting
+ */
+export interface LabelLookupResult {
+  ids: string[];
+  found: Array<{ id: string; name: string }>;
+  missing: string[];
 }
 
 // ============================================================================
@@ -274,4 +284,120 @@ export async function findTeamByName(
   );
 
   return exactMatch || teams[0];
+}
+
+/**
+ * Find a workflow state ID by exact name within a team.
+ *
+ * @param client LinearClient instance
+ * @param teamId Linear team UUID
+ * @param stateName Workflow state name to resolve
+ * @returns Workflow state ID or null if not found
+ */
+export async function findWorkflowStateIdByName(
+  client: LinearClient,
+  teamId: string,
+  stateName: string
+): Promise<string | null> {
+  const query = `
+    query WorkflowStates($filter: WorkflowStateFilter!) {
+      workflowStates(filter: $filter, first: 1) {
+        nodes {
+          id
+          name
+        }
+      }
+    }
+  `;
+
+  const result = await withRetry(
+    () => client.client.rawRequest(query, {
+      filter: {
+        team: { id: { eq: teamId } },
+        name: { eq: stateName },
+      },
+    }),
+    { label: 'linear-utils:workflow-state' }
+  );
+
+  const data = result.data as {
+    workflowStates: {
+      nodes: Array<{ id: string; name: string }>;
+    };
+  };
+
+  return data.workflowStates.nodes[0]?.id || null;
+}
+
+/**
+ * Resolve label names to IDs within a team, matching names case-insensitively.
+ *
+ * @param client LinearClient instance
+ * @param teamId Linear team UUID
+ * @param labelNames Label names requested by the caller
+ * @returns Found label IDs plus missing label names
+ */
+export async function findLabelIdsByName(
+  client: LinearClient,
+  teamId: string,
+  labelNames: string[]
+): Promise<LabelLookupResult> {
+  if (labelNames.length === 0) {
+    return { ids: [], found: [], missing: [] };
+  }
+
+  const requested = labelNames
+    .map(name => name.trim())
+    .filter(name => name.length > 0);
+
+  if (requested.length === 0) {
+    return { ids: [], found: [], missing: [] };
+  }
+
+  const query = `
+    query Labels($filter: IssueLabelFilter!) {
+      issueLabels(filter: $filter, first: 250) {
+        nodes {
+          id
+          name
+        }
+      }
+    }
+  `;
+
+  const result = await withRetry(
+    () => client.client.rawRequest(query, {
+      filter: {
+        team: { id: { eq: teamId } },
+      },
+    }),
+    { label: 'linear-utils:labels' }
+  );
+
+  const data = result.data as {
+    issueLabels: {
+      nodes: Array<{ id: string; name: string }>;
+    };
+  };
+
+  const teamLabels = data.issueLabels.nodes;
+  const found: Array<{ id: string; name: string }> = [];
+  const missing: string[] = [];
+
+  for (const requestedName of requested) {
+    const label = teamLabels.find(
+      candidate => candidate.name.toLowerCase() === requestedName.toLowerCase()
+    );
+    if (label) {
+      found.push(label);
+    } else {
+      missing.push(requestedName);
+    }
+  }
+
+  return {
+    ids: found.map(label => label.id),
+    found,
+    missing,
+  };
 }
