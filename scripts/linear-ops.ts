@@ -924,7 +924,10 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
     };
 
     await tryLin(['initiatives', 'list'], sdkListInitiatives, (data: unknown) => {
-      const initiatives = Array.isArray(data) ? data : [];
+      // lin >=2026.x wraps as { initiatives: { nodes: [...] } }; older lin returned a bare array.
+      const root = data as Record<string, unknown>;
+      const wrapped = (root.initiatives as Record<string, unknown>)?.nodes;
+      const initiatives = Array.isArray(data) ? data : Array.isArray(wrapped) ? wrapped : [];
       if (initiatives.length === 0) {
         console.log('No initiatives found.');
         return;
@@ -1017,10 +1020,12 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
     };
 
     await tryLin(['me'], sdkWhoami, (data: unknown) => {
-      // Format lin JSON output to match existing display
-      const user = data as Record<string, unknown>;
+      // Format lin JSON output to match existing display.
+      // lin >=2026.x wraps under `viewer`; older lin returned the user flat. Support both.
+      const root = data as Record<string, unknown>;
+      const user = (root.viewer as Record<string, unknown>) ?? root;
       console.log('Current User:');
-      console.log(`  Name:  ${user.name || 'Unknown'}`);
+      console.log(`  Name:  ${user.name || user.displayName || 'Unknown'}`);
       console.log(`  Email: ${user.email || 'Unknown'}`);
       console.log(`  ID:    ${user.id || 'Unknown'}`);
       console.log('');
@@ -1031,9 +1036,16 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
         console.log(`  ID:   ${org.id || 'Unknown'}`);
         console.log('');
       }
-      if (Array.isArray(user.teams)) {
+      // Teams: legacy `teams` array, or current `teamMemberships.nodes[].team`.
+      const memberships = user.teamMemberships as Record<string, unknown> | undefined;
+      const teamList: unknown[] = Array.isArray(user.teams)
+        ? user.teams
+        : Array.isArray(memberships?.nodes)
+          ? (memberships.nodes as unknown[]).map((m) => (m as Record<string, unknown>).team)
+          : [];
+      if (teamList.length > 0) {
         console.log('Teams:');
-        for (const team of user.teams) {
+        for (const team of teamList) {
           const t = team as Record<string, unknown>;
           console.log(`  - ${t.name} (${t.key})`);
         }
@@ -1717,7 +1729,9 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
     };
 
     await tryLin(['search', query], sdkSearch, (data: unknown) => {
-      const issues = Array.isArray(data) ? data : [];
+      // lin >=2026.x wraps as { documents: [...], issues: [...] }; older lin returned a bare array.
+      const root = data as Record<string, unknown>;
+      const issues = Array.isArray(data) ? data : Array.isArray(root.issues) ? root.issues : [];
       if (issues.length === 0) {
         console.log('No results found.');
         return;
