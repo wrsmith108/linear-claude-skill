@@ -58,6 +58,23 @@ import {
   isStrictMode
 } from './lib';
 
+// lin >=2026.x wraps `--json` output in container objects (e.g. { issues: [...] } or
+// { initiatives: { nodes: [...] } }); older lin returned flatter shapes (bare arrays / flat
+// objects). These helpers unwrap either, and stay null-safe if `lin` ever emits a bare `null`.
+function unwrapLinList(data: unknown, key: string): unknown[] {
+  if (Array.isArray(data)) return data;
+  const wrapped = (data as Record<string, unknown> | null)?.[key];
+  if (Array.isArray(wrapped)) return wrapped;
+  const nested = (wrapped as Record<string, unknown> | undefined)?.nodes;
+  return Array.isArray(nested) ? nested : [];
+}
+
+function unwrapLinObject(data: unknown, key: string): Record<string, unknown> {
+  const root = (data as Record<string, unknown> | null) ?? {};
+  const wrapped = root[key];
+  return typeof wrapped === 'object' && wrapped !== null ? (wrapped as Record<string, unknown>) : root;
+}
+
 // Lazy API key validation and client creation
 // Commands that don't need the API (help, labels taxonomy/validate/suggest/agents/matrix)
 // can run without LINEAR_API_KEY being set.
@@ -924,7 +941,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
     };
 
     await tryLin(['initiatives', 'list'], sdkListInitiatives, (data: unknown) => {
-      const initiatives = Array.isArray(data) ? data : [];
+      const initiatives = unwrapLinList(data, 'initiatives');
       if (initiatives.length === 0) {
         console.log('No initiatives found.');
         return;
@@ -1017,10 +1034,10 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
     };
 
     await tryLin(['me'], sdkWhoami, (data: unknown) => {
-      // Format lin JSON output to match existing display
-      const user = data as Record<string, unknown>;
+      // Format lin JSON output to match existing display.
+      const user = unwrapLinObject(data, 'viewer');
       console.log('Current User:');
-      console.log(`  Name:  ${user.name || 'Unknown'}`);
+      console.log(`  Name:  ${user.name || user.displayName || 'Unknown'}`);
       console.log(`  Email: ${user.email || 'Unknown'}`);
       console.log(`  ID:    ${user.id || 'Unknown'}`);
       console.log('');
@@ -1031,9 +1048,13 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
         console.log(`  ID:   ${org.id || 'Unknown'}`);
         console.log('');
       }
-      if (Array.isArray(user.teams)) {
+      // Teams: legacy `teams` array, or current `teamMemberships.nodes[].team`.
+      const teamList: unknown[] = Array.isArray(user.teams)
+        ? user.teams
+        : unwrapLinList(user, 'teamMemberships').map((m) => (m as Record<string, unknown>).team);
+      if (teamList.length > 0) {
         console.log('Teams:');
-        for (const team of user.teams) {
+        for (const team of teamList) {
           const t = team as Record<string, unknown>;
           console.log(`  - ${t.name} (${t.key})`);
         }
@@ -1717,7 +1738,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
     };
 
     await tryLin(['search', query], sdkSearch, (data: unknown) => {
-      const issues = Array.isArray(data) ? data : [];
+      const issues = unwrapLinList(data, 'issues');
       if (issues.length === 0) {
         console.log('No results found.');
         return;
@@ -1776,7 +1797,7 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
     if (state) linArgs.push('--state', state);
 
     await tryLin(linArgs, sdkListIssues, (data: unknown) => {
-      const issues = Array.isArray(data) ? data : [];
+      const issues = unwrapLinList(data, 'issues');
       if (issues.length === 0) {
         console.log('No issues found.');
         return;
