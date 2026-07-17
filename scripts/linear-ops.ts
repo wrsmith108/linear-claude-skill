@@ -1790,7 +1790,17 @@ const commands: Record<string, (...args: string[]) => Promise<void>> = {
     if (state) linArgs.push('--state', state);
 
     await tryLin(linArgs, sdkListIssues, (data: unknown) => {
-      const issues = Array.isArray(data) ? data : [];
+      // lin >=2026.x wraps as { issues: [...] } or { issues: { nodes: [...] } }; older lin returned a bare array.
+      const root = data as Record<string, unknown>;
+      const wrapped = root.issues;
+      const nested = Array.isArray(wrapped) ? undefined : (wrapped as Record<string, unknown> | undefined)?.nodes;
+      const issues = Array.isArray(data)
+        ? data
+        : Array.isArray(wrapped)
+          ? wrapped
+          : Array.isArray(nested)
+            ? nested
+            : [];
       if (issues.length === 0) {
         console.log('No issues found.');
         return;
