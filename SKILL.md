@@ -1,7 +1,7 @@
 ---
 name: Linear
 description: Managing Linear issues, projects, and teams. Use when working with Linear tasks, creating issues, updating status, querying projects, or managing team workflows.
-version: 3.4.0
+version: 3.4.1
 author: Ryan Smith <ryan@smithhorn.ca>
 tags:
   - linear

@@ -1,3 +1,10 @@
+## [3.4.1](https://github.com/wrsmith108/linear-claude-skill/compare/v3.4.0...v3.4.1) (2026-07-17)
+
+
+### Bug Fixes
+
+* **linear-ops:** handle lin >=2026.x wrapped JSON in whoami/search/initiatives ([#25](https://github.com/wrsmith108/linear-claude-skill/issues/25)) ([60b67c7](https://github.com/wrsmith108/linear-claude-skill/commit/60b67c7bc3a86262a84095d69d9099a0e39a28e7))
+
 # [3.4.0](https://github.com/wrsmith108/linear-claude-skill/compare/v3.3.0...v3.4.0) (2026-06-25)
 
 
